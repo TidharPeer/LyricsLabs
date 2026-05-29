@@ -55,6 +55,7 @@ export function SongFormPage() {
 
   const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle')
   const [fetchedLyrics, setFetchedLyrics] = useState<FetchedLyrics | null>(null)
+  const [lyricsLoading, setLyricsLoading] = useState(false)
   const [lyricsImported, setLyricsImported] = useState(false)
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set())
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -109,8 +110,10 @@ export function SongFormPage() {
       setAutoFilledFields(filled)
       setFetchStatus('ok')
 
+      setLyricsLoading(true)
       const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
       setFetchedLyrics(lyrics)
+      setLyricsLoading(false)
     }, 700)
   }, [youtubeUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -277,12 +280,20 @@ export function SongFormPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('song.lyrics')}</CardTitle>
+          <CardTitle className="text-base flex items-center justify-between">
+            {t('song.lyrics')}
+            {lyricsLoading && (
+              <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Searching for lyrics…
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {fetchStatus === 'ok' && fetchedLyrics && !lyricsImported && (
-            <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
-              <div className="flex items-center gap-2 text-sm text-green-800">
+          {!lyricsLoading && fetchStatus === 'ok' && fetchedLyrics && !lyricsImported && (
+            <div className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-sm text-green-500">
                 <Music className="h-4 w-4 shrink-0" />
                 <span>
                   {fetchedLyrics.synced
@@ -290,20 +301,20 @@ export function SongFormPage() {
                     : t('songForm.lyricsFound', { count: fetchedLyrics.lines.length })}
                 </span>
               </div>
-              <Button size="sm" variant="outline" className="h-7 text-xs shrink-0 border-green-300 text-green-700 hover:bg-green-100" onClick={importLyrics}>
+              <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={importLyrics}>
                 {fetchedLyrics.synced ? t('songForm.importLyricsSynced') : t('songForm.importLyrics')}
               </Button>
             </div>
           )}
 
-          {fetchStatus === 'ok' && !fetchedLyrics && (
+          {!lyricsLoading && fetchStatus === 'ok' && !fetchedLyrics && (
             <p className="text-xs text-muted-foreground">{t('songForm.lyricsNotFound')}</p>
           )}
 
           {lyricsImported && fetchedLyrics?.synced && (
-            <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              {t('songForm.lyricsImported')} Timestamps are included — karaoke sync is ready!
+              {t('songForm.lyricsImported')} Timestamps included — karaoke sync ready!
             </div>
           )}
 

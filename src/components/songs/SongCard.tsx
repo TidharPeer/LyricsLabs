@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ChevronRight } from 'lucide-react'
+import { Music2, ChevronRight, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Song } from '@/types'
 
 interface Props {
   song: Song
+  onDelete?: () => void
 }
 
-export function SongCard({ song }: Props) {
+export function SongCard({ song, onDelete }: Props) {
   const { t } = useTranslation()
 
   return (
@@ -30,6 +31,15 @@ export function SongCard({ song }: Props) {
             <span className="text-xs text-muted-foreground">
               {t('song.lines', { count: song.lyrics.length })}
             </span>
+            {onDelete && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete() }}
+                className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                title="Delete song"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
         </CardContent>
