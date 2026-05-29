@@ -7,13 +7,17 @@ interface Props {
   videoId: string
   title: string
   autoPlay?: boolean
+  onTimeUpdate?: (time: number) => void
 }
 
-export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
+export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate }: Props) {
   const playerDivRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YT.Player | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const onTimeUpdateRef = useRef(onTimeUpdate)
+  onTimeUpdateRef.current = onTimeUpdate
+
   const [ready, setReady] = useState(false)
-  // When autoPlay, start open and in audio-only mode immediately
   const [open, setOpen] = useState(autoPlay)
   const [audioOnly, setAudioOnly] = useState(autoPlay)
   const [playing, setPlaying] = useState(false)
@@ -41,17 +45,21 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
         events: {
           onReady: (event) => {
             setReady(true)
-            // Explicit playVideo as backup in case autoplay param is blocked
             if (autoPlay) event.target.playVideo()
+            intervalRef.current = setInterval(() => {
+              const t = playerRef.current?.getCurrentTime?.() ?? 0
+              onTimeUpdateRef.current?.(t)
+            }, 250)
           },
           onStateChange: (event) => {
-            setPlaying(event.data === 1) // 1 = YT.PlayerState.PLAYING
+            setPlaying(event.data === 1)
           },
         },
       })
     })
 
     return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
       try { playerRef.current?.destroy() } catch { /* ignore */ }
       playerRef.current = null
       setReady(false)
@@ -78,9 +86,7 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
 
   return (
     <div className="rounded-lg border bg-muted/30 overflow-hidden">
-      {/* Control bar */}
       <div className="flex items-center gap-2 px-3 py-2">
-        {/* Animated dot: green + pulsing when playing, grey when paused/loading */}
         <span
           className={`shrink-0 w-2 h-2 rounded-full transition-colors ${
             playing ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'
@@ -93,14 +99,12 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
         <div className="flex items-center gap-1">
           {open && ready && (
             <>
-              {/* Play / Pause */}
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={togglePlay}>
                 {playing
                   ? <Pause className="h-3.5 w-3.5" />
                   : <Play className="h-3.5 w-3.5" />}
               </Button>
 
-              {/* Show / hide video */}
               <Button
                 size="icon"
                 variant="ghost"
@@ -115,7 +119,6 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
             </>
           )}
 
-          {/* Open button — shown when closed */}
           {!open && (
             <Button
               size="sm"
@@ -128,7 +131,6 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
             </Button>
           )}
 
-          {/* Close / stop button */}
           {open && (
             <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleClose}>
               ✕
@@ -137,7 +139,6 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
         </div>
       </div>
 
-      {/* Status line under the bar */}
       {open && audioOnly && (
         <div className="px-3 pb-2 text-xs text-muted-foreground">
           {ready
@@ -146,11 +147,6 @@ export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
         </div>
       )}
 
-      {/*
-        Player div — always in the DOM so YouTube keeps audio alive.
-        When video is hidden: 1×1px transparent (audio continues).
-        When video is shown: normal 16:9 embed.
-      */}
       <div
         ref={playerDivRef}
         style={showVideo ? undefined : { width: 1, height: 1, opacity: 0, overflow: 'hidden' }}

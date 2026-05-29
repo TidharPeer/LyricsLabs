@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { getSong } from '@/lib/storage'
+import { findActiveLine } from '@/lib/activeLine'
 import { Button } from '@/components/ui/button'
 import { CompactPlayer } from '@/components/player/CompactPlayer'
 import { FillInTheBlank } from '@/components/games/FillInTheBlank'
@@ -23,6 +24,9 @@ export function GamePage() {
   const song = id ? getSong(id) : undefined
   const [starsEarned, setStarsEarned] = useState(0)
   const [showStars, setShowStars] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+
+  const activeLine = song ? findActiveLine(song.lyrics, currentTime) : -1
 
   const handleGameComplete = useCallback(async (score: number, sessionId: string) => {
     const stars = scoreToStars(score)
@@ -32,7 +36,6 @@ export function GamePage() {
         setStarsEarned(stars)
         setShowStars(true)
       }
-      // Save to Supabase (game component already saved locally)
       await saveGameSessionRemote({
         id: sessionId,
         songId: song?.id ?? '',
@@ -41,7 +44,6 @@ export function GamePage() {
         score,
         starsEarned: stars,
       }, user.id)
-      // Refresh header stars immediately
       await refreshStats()
     }
   }, [user, refreshStats, song?.id, mode])
@@ -84,17 +86,18 @@ export function GamePage() {
           videoId={song.youtubeId}
           title={`${song.title} — ${song.artist}`}
           autoPlay
+          onTimeUpdate={setCurrentTime}
         />
       )}
 
       {mode === 'fill-blank' && (
-        <FillInTheBlank song={song} onBack={handleBack} onComplete={handleGameComplete} />
+        <FillInTheBlank song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
       )}
       {mode === 'fadeout' && (
-        <FadeOutChallenge song={song} onBack={handleBack} onComplete={handleGameComplete} />
+        <FadeOutChallenge song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
       )}
       {mode === 'line-completion' && (
-        <LineCompletion song={song} onBack={handleBack} onComplete={handleGameComplete} />
+        <LineCompletion song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
       )}
 
       {!['fill-blank', 'fadeout', 'line-completion'].includes(mode ?? '') && (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled, { css, keyframes } from 'styled-components'
 import { Button } from '@/components/ui/button'
@@ -12,22 +12,36 @@ interface Props {
   song: Song
   onBack: () => void
   onComplete?: (score: number, sessionId: string) => void
+  activeLine?: number
 }
 
 type Visibility = 'full' | 'alternate' | 'first-words' | 'blank'
 
 const ROUNDS: Visibility[] = ['full', 'alternate', 'first-words', 'blank']
 
+const pulse = keyframes`0%, 100% { opacity: 1; } 50% { opacity: 0.7; }`
 const fadeAnim = keyframes`from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; }`
 
-const LineText = styled.p<{ $dim: boolean }>`
+const LineText = styled.p<{ $dim: boolean; $active: boolean }>`
+  border-inline-start: 3px solid transparent;
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.75rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
   animation: ${fadeAnim} 0.3s ease;
-  ${({ $dim }) =>
-    $dim &&
-    css`
-      color: hsl(var(--muted-foreground));
-      opacity: 0.4;
-    `}
+
+  ${({ $dim, $active }) => $dim && !$active && css`
+    color: var(--muted-foreground);
+    opacity: 0.4;
+  `}
+
+  ${({ $active }) => $active && css`
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    font-weight: 600;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    border-inline-start-color: var(--primary);
+    opacity: 1;
+  `}
 `
 
 function renderLine(text: string, visibility: Visibility, lineIndex: number): string {
@@ -46,10 +60,15 @@ function renderLine(text: string, visibility: Visibility, lineIndex: number): st
   }
 }
 
-export function FadeOutChallenge({ song, onBack, onComplete }: Props) {
+export function FadeOutChallenge({ song, onBack, onComplete, activeLine = -1 }: Props) {
   const { t } = useTranslation()
   const [roundIndex, setRoundIndex] = useState(0)
   const [finished, setFinished] = useState(false)
+  const activeLineRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    activeLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeLine])
 
   const round = ROUNDS[roundIndex]
   const totalRounds = ROUNDS.length
@@ -100,16 +119,25 @@ export function FadeOutChallenge({ song, onBack, onComplete }: Props) {
           <p className="text-sm text-muted-foreground">You completed all 4 rounds!</p>
         </div>
       ) : (
-        <div className="rounded-lg border p-4 max-h-[400px] overflow-y-auto space-y-1 font-medium leading-relaxed" dir={lyricsDir(song.language)}>
-          {song.lyrics.map((line, i) => {
-            const rendered = renderLine(line.text, round, i)
-            const isDim = rendered.startsWith('―')
-            return (
-              <LineText key={line.id} $dim={isDim} className="text-sm">
-                {rendered}
-              </LineText>
-            )
-          })}
+        <div className="rounded-lg border max-h-[400px] overflow-y-auto font-medium leading-relaxed" dir={lyricsDir(song.language)}>
+          <div className="py-2">
+            {song.lyrics.map((line, i) => {
+              const rendered = renderLine(line.text, round, i)
+              const isDim = rendered.startsWith('―')
+              const isActive = i === activeLine
+              return (
+                <LineText
+                  key={line.id}
+                  $dim={isDim}
+                  $active={isActive}
+                  ref={isActive ? (activeLineRef as React.RefObject<HTMLParagraphElement>) : undefined}
+                  className="text-sm"
+                >
+                  {rendered}
+                </LineText>
+              )
+            })}
+          </div>
         </div>
       )}
 

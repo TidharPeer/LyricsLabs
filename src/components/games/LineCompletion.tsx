@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, ChevronRight } from 'lucide-react'
+import styled, { keyframes } from 'styled-components'
+import { CheckCircle2, XCircle, ChevronRight, Music2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -12,6 +13,7 @@ interface Props {
   song: Song
   onBack: () => void
   onComplete?: (score: number, sessionId: string) => void
+  activeLine?: number
 }
 
 function getPrompt(text: string): { prompt: string; answer: string } {
@@ -27,7 +29,19 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿\s]/g, '').trim()
 }
 
-export function LineCompletion({ song, onBack, onComplete }: Props) {
+const pulse = keyframes`0%, 100% { opacity: 1; } 50% { opacity: 0.5; }`
+
+const NowPlayingDot = styled.span`
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: ${pulse} 1s ease-in-out infinite;
+  flex-shrink: 0;
+`
+
+export function LineCompletion({ song, onBack, onComplete, activeLine = -1 }: Props) {
   const { t } = useTranslation()
 
   const lines = song.lyrics.filter((l) => l.text.trim().length > 0 && l.text.split(' ').length > 3)
@@ -52,6 +66,12 @@ export function LineCompletion({ song, onBack, onComplete }: Props) {
   const { prompt, answer } = getPrompt(line.text)
   const correctCount = results.filter(Boolean).length
   const score = lines.length > 0 ? Math.round((correctCount / lines.length) * 100) : 0
+
+  // Map the active lyric index (in full song.lyrics) to which game line it is
+  const activeGameLineIndex = activeLine >= 0
+    ? lines.findIndex((l) => song.lyrics.indexOf(l) === activeLine)
+    : -1
+  const isCurrentLineNowPlaying = activeGameLineIndex === current
 
   function checkAnswer() {
     const isCorrect = normalize(input).startsWith(normalize(answer).slice(0, Math.floor(normalize(answer).length * 0.7)))
@@ -112,6 +132,15 @@ export function LineCompletion({ song, onBack, onComplete }: Props) {
       <Progress value={((current) / lines.length) * 100} />
 
       <div className="rounded-lg border p-6 space-y-4" dir={lyricsDir(song.language)}>
+        {/* Now-playing indicator — shows when background music is at this exact line */}
+        {isCurrentLineNowPlaying && (
+          <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--primary)' }}>
+            <NowPlayingDot />
+            <Music2 className="h-3 w-3" />
+            now playing
+          </div>
+        )}
+
         <div className="text-base font-medium" dir={lyricsDir(song.language)}>
           {isRTL(song.language) ? (
             <>

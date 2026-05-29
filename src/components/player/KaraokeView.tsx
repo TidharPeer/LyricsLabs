@@ -1,51 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import styled, { keyframes } from 'styled-components'
 import { useTranslation } from 'react-i18next'
 import { loadYTApi } from '@/lib/youtube'
 import { lyricsDir } from '@/lib/rtl'
 import { addStars } from '@/lib/db'
-import type { Song, LyricLine } from '@/types'
+import { findActiveLine } from '@/lib/activeLine'
+import { ActiveLyricLine, InactiveLyricLine } from '@/styles/lyricLine'
+import type { Song } from '@/types'
 
 interface Props {
   song: Song
   userId?: string
   onStarEarned?: () => void
-}
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-`
-
-const ActiveLine = styled.div`
-  animation: ${pulse} 1.5s ease-in-out infinite;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 0.08);
-  border-inline-start: 3px solid hsl(var(--primary));
-  border-radius: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  transition: all 0.2s ease;
-`
-
-const InactiveLine = styled.div`
-  font-size: 1rem;
-  color: hsl(var(--muted-foreground));
-  padding: 0.4rem 0.75rem;
-  transition: all 0.2s ease;
-  border-inline-start: 3px solid transparent;
-  border-radius: 0.25rem;
-`
-
-function findActiveLine(lyrics: LyricLine[], currentTime: number): number {
-  if (currentTime <= 0) return -1
-  let active = -1
-  for (let i = 0; i < lyrics.length; i++) {
-    const ts = lyrics[i].timestamp
-    if (ts !== undefined && ts <= currentTime) active = i
-  }
-  return active
 }
 
 export function KaraokeView({ song, userId, onStarEarned }: Props) {
@@ -84,7 +49,6 @@ export function KaraokeView({ song, userId, onStarEarned }: Props) {
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
               setCurrentTime(t)
-              // Award 1 star after 30 s of karaoke (once per session)
               if (!karaokeStarGiven.current && t >= 30 && userId) {
                 karaokeStarGiven.current = true
                 addStars(userId, 1).then(() => onStarEarned?.()).catch(() => {})
@@ -128,11 +92,11 @@ export function KaraokeView({ song, userId, onStarEarned }: Props) {
             {song.lyrics.map((line, i) => {
               const isActive = i === activeLine
               return isActive ? (
-                <ActiveLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
+                <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
                   {line.text}
-                </ActiveLine>
+                </ActiveLyricLine>
               ) : (
-                <InactiveLine key={line.id}>{line.text}</InactiveLine>
+                <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
               )
             })}
           </div>
