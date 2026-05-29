@@ -3,10 +3,12 @@ import styled, { keyframes } from 'styled-components'
 import { useTranslation } from 'react-i18next'
 import { loadYTApi } from '@/lib/youtube'
 import { lyricsDir } from '@/lib/rtl'
+import { addStars } from '@/lib/db'
 import type { Song, LyricLine } from '@/types'
 
 interface Props {
   song: Song
+  userId?: string
 }
 
 const pulse = keyframes`
@@ -45,7 +47,7 @@ function findActiveLine(lyrics: LyricLine[], currentTime: number): number {
   return active
 }
 
-export function KaraokeView({ song }: Props) {
+export function KaraokeView({ song, userId }: Props) {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
   const [playerReady, setPlayerReady] = useState(false)
@@ -53,6 +55,7 @@ export function KaraokeView({ song }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const karaokeStarGiven = useRef(false)
 
   const hasTimestamps = song.lyrics.some((l) => l.timestamp !== undefined)
   const activeLine = findActiveLine(song.lyrics, currentTime)
@@ -78,7 +81,13 @@ export function KaraokeView({ song }: Props) {
           onReady: () => {
             setPlayerReady(true)
             intervalRef.current = setInterval(() => {
-              setCurrentTime(playerRef.current?.getCurrentTime?.() ?? 0)
+              const t = playerRef.current?.getCurrentTime?.() ?? 0
+              setCurrentTime(t)
+              // Award 1 star after 30 s of karaoke (once per session)
+              if (!karaokeStarGiven.current && t >= 30 && userId) {
+                karaokeStarGiven.current = true
+                addStars(userId, 1).catch(() => {})
+              }
             }, 250)
           },
         },

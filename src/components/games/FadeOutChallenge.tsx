@@ -11,6 +11,7 @@ import type { Song } from '@/types'
 interface Props {
   song: Song
   onBack: () => void
+  onComplete?: (score: number, sessionId: string) => void
 }
 
 type Visibility = 'full' | 'alternate' | 'first-words' | 'blank'
@@ -45,7 +46,7 @@ function renderLine(text: string, visibility: Visibility, lineIndex: number): st
   }
 }
 
-export function FadeOutChallenge({ song, onBack }: Props) {
+export function FadeOutChallenge({ song, onBack, onComplete }: Props) {
   const { t } = useTranslation()
   const [roundIndex, setRoundIndex] = useState(0)
   const [finished, setFinished] = useState(false)
@@ -59,13 +60,9 @@ export function FadeOutChallenge({ song, onBack }: Props) {
     } else {
       setFinished(true)
       const score = Math.round(((roundIndex + 1) / totalRounds) * 100)
-      saveGameSession({
-        id: crypto.randomUUID(),
-        songId: song.id,
-        mode: 'fadeout',
-        completedAt: Date.now(),
-        score,
-      })
+      const sessionId = crypto.randomUUID()
+      saveGameSession({ id: sessionId, songId: song.id, mode: 'fadeout', completedAt: Date.now(), score })
+      onComplete?.(score, sessionId)
     }
   }
 

@@ -118,6 +118,31 @@
     "ar": "Arabic",
     "other": "Other"
   },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "checkEmail": "Check your email to confirm your account!",
+    "profile": "Profile",
+    "mySongs": "My Songs",
+    "allSongs": "All Songs",
+    "signInToAdd": "Sign in to add songs"
+  },
+  "profile": {
+    "title": "Profile",
+    "stars": "Stars",
+    "streak": "Day Streak",
+    "bestStreak": "Best Streak",
+    "recentGames": "Recent Games",
+    "shareLink": "Share LyricLab",
+    "copied": "Link copied!",
+    "noGames": "No games played yet.",
+    "starsEarned": "+{{count}} ★"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",

@@ -11,6 +11,7 @@ import type { Song } from '@/types'
 interface Props {
   song: Song
   onBack: () => void
+  onComplete?: (score: number, sessionId: string) => void
 }
 
 function getPrompt(text: string): { prompt: string; answer: string } {
@@ -26,7 +27,7 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿\s]/g, '').trim()
 }
 
-export function LineCompletion({ song, onBack }: Props) {
+export function LineCompletion({ song, onBack, onComplete }: Props) {
   const { t } = useTranslation()
 
   const lines = song.lyrics.filter((l) => l.text.trim().length > 0 && l.text.split(' ').length > 3)
@@ -65,13 +66,10 @@ export function LineCompletion({ song, onBack }: Props) {
       setRevealed(false)
     } else {
       setDone(true)
-      saveGameSession({
-        id: crypto.randomUUID(),
-        songId: song.id,
-        mode: 'line-completion',
-        completedAt: Date.now(),
-        score: Math.round(((correctCount + (results.length < lines.length ? 0 : 0)) / lines.length) * 100),
-      })
+      const score = Math.round((correctCount / lines.length) * 100)
+      const sessionId = crypto.randomUUID()
+      saveGameSession({ id: sessionId, songId: song.id, mode: 'line-completion', completedAt: Date.now(), score })
+      onComplete?.(score, sessionId)
     }
   }
 

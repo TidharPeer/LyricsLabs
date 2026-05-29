@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
@@ -7,14 +8,39 @@ import { CompactPlayer } from '@/components/player/CompactPlayer'
 import { FillInTheBlank } from '@/components/games/FillInTheBlank'
 import { FadeOutChallenge } from '@/components/games/FadeOutChallenge'
 import { LineCompletion } from '@/components/games/LineCompletion'
+import { StarsCounter } from '@/components/profile/StarsCounter'
+import { useAuth } from '@/contexts/AuthContext'
+import { addStars, saveGameSessionRemote } from '@/lib/db'
+import { scoreToStars } from '@/types'
 import type { GameMode } from '@/types'
 
 export function GamePage() {
   const { t } = useTranslation()
   const { id, mode } = useParams<{ id: string; mode: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const song = id ? getSong(id) : undefined
+  const [starsEarned, setStarsEarned] = useState(0)
+  const [showStars, setShowStars] = useState(false)
+
+  const handleGameComplete = useCallback(async (score: number, sessionId: string) => {
+    const stars = scoreToStars(score)
+    if (user && stars > 0) {
+      await addStars(user.id, stars)
+      setStarsEarned(stars)
+      setShowStars(true)
+      // Update the session record with stars earned
+      await saveGameSessionRemote({
+        id: sessionId,
+        songId: song?.id ?? '',
+        mode: mode as GameMode,
+        completedAt: Date.now(),
+        score,
+        starsEarned: stars,
+      }, user.id)
+    }
+  }, [user, song?.id, mode])
 
   if (!song) {
     return (
@@ -57,12 +83,22 @@ export function GamePage() {
         />
       )}
 
-      {mode === 'fill-blank' && <FillInTheBlank song={song} onBack={handleBack} />}
-      {mode === 'fadeout' && <FadeOutChallenge song={song} onBack={handleBack} />}
-      {mode === 'line-completion' && <LineCompletion song={song} onBack={handleBack} />}
+      {mode === 'fill-blank' && (
+        <FillInTheBlank song={song} onBack={handleBack} onComplete={handleGameComplete} />
+      )}
+      {mode === 'fadeout' && (
+        <FadeOutChallenge song={song} onBack={handleBack} onComplete={handleGameComplete} />
+      )}
+      {mode === 'line-completion' && (
+        <LineCompletion song={song} onBack={handleBack} onComplete={handleGameComplete} />
+      )}
 
       {!['fill-blank', 'fadeout', 'line-completion'].includes(mode ?? '') && (
         <p className="text-muted-foreground text-center">{t('common.notFound')}</p>
+      )}
+
+      {showStars && (
+        <StarsCounter earned={starsEarned} onDone={() => setShowStars(false)} />
       )}
     </div>
   )

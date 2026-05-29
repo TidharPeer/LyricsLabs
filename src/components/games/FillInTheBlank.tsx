@@ -11,6 +11,7 @@ import type { Song } from '@/types'
 interface Props {
   song: Song
   onBack: () => void
+  onComplete?: (score: number, sessionId: string) => void
 }
 
 const SKIP_WORDS = new Set(['a', 'an', 'the', 'i', 'is', 'in', 'on', 'at', 'to', 'of', 'it', 'and', 'or', 'but', 'so', 'for', 'as', 'by', 'be', 'do'])
@@ -55,7 +56,7 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿]/g, '')
 }
 
-export function FillInTheBlank({ song, onBack }: Props) {
+export function FillInTheBlank({ song, onBack, onComplete }: Props) {
   const { t } = useTranslation()
 
   const tokenLines = useMemo(() => tokenizeLyrics(song.lyrics), [song.lyrics])
@@ -76,13 +77,9 @@ export function FillInTheBlank({ song, onBack }: Props) {
     setChecked(true)
     setFinished(true)
     const score = Math.round((correctCount / blanks.length) * 100)
-    saveGameSession({
-      id: crypto.randomUUID(),
-      songId: song.id,
-      mode: 'fill-blank',
-      completedAt: Date.now(),
-      score,
-    })
+    const sessionId = crypto.randomUUID()
+    saveGameSession({ id: sessionId, songId: song.id, mode: 'fill-blank', completedAt: Date.now(), score })
+    onComplete?.(score, sessionId)
   }
 
   function handleReset() {

@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getSong, upsertSong, deleteSong, extractYouTubeId } from '@/lib/storage'
+import { getSong, deleteSong as localDelete, extractYouTubeId } from '@/lib/storage'
+import { saveSongRemote, deleteSongRemote } from '@/lib/db'
 import { fetchYouTubeMetadata, fetchLyrics, type FetchedLyrics } from '@/lib/fetchSongData'
+import { useAuth } from '@/contexts/AuthContext'
 import type { Song, LyricLine } from '@/types'
 
 const LANGUAGES = ['en', 'he', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh', 'ar', 'other']
@@ -36,8 +38,14 @@ function mergeLyrics(existing: LyricLine[], updated: LyricLine[]): LyricLine[] {
 export function SongFormPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
   const existing = id && id !== 'new' ? getSong(id) : undefined
+
+  // Redirect to auth if not signed in
+  useEffect(() => {
+    if (!user) navigate('/auth', { replace: true })
+  }, [user, navigate])
 
   const [title, setTitle] = useState(existing?.title ?? '')
   const [artist, setArtist] = useState(existing?.artist ?? '')
@@ -100,7 +108,7 @@ export function SongFormPage() {
     setLyricsImported(true)
   }
 
-  function handleSave() {
+  async function handleSave() {
     setUrlError('')
     const youtubeId = extractYouTubeId(youtubeUrl)
     if (youtubeUrl && !youtubeId) {
@@ -129,14 +137,19 @@ export function SongFormPage() {
       createdAt: existing?.createdAt ?? Date.now(),
     }
 
-    upsertSong(song)
-    navigate(`/songs/${song.id}`)
+    if (user) {
+      const saved = await saveSongRemote(song, user.id)
+      navigate(`/songs/${saved.id}`)
+    } else {
+      navigate('/auth')
+    }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!existing) return
     if (window.confirm(t('songForm.deleteConfirm'))) {
-      deleteSong(existing.id)
+      await deleteSongRemote(existing.id)
+      localDelete(existing.id)
       navigate('/')
     }
   }
