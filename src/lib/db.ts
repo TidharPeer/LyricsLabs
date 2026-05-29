@@ -72,6 +72,43 @@ export async function searchSongs(query: string): Promise<Song[]> {
   )
 }
 
+/** Push a batch of songs to Supabase. Returns accurate success/fail counts. */
+export async function pushSongsToCloud(
+  songs: Song[],
+  userId: string
+): Promise<{ synced: number; failed: number; firstError: string | null }> {
+  let synced = 0
+  let failed = 0
+  let firstError: string | null = null
+
+  for (const song of songs) {
+    const row = songToRow(song, userId)
+    const { error } = await supabase
+      .from('songs')
+      .upsert(row, { onConflict: 'id' })
+
+    if (error) {
+      failed++
+      if (!firstError) firstError = error.message
+    } else {
+      synced++
+      localUpsert({ ...song, createdBy: userId })
+    }
+  }
+
+  return { synced, failed, firstError }
+}
+
+/** Count how many songs are currently in Supabase (visible to this user). */
+export async function fetchCloudSongCount(): Promise<number | null> {
+  const { count, error } = await supabase
+    .from('songs')
+    .select('*', { count: 'exact', head: true })
+
+  if (error) return null
+  return count ?? 0
+}
+
 /** Save a song to Supabase + local cache. */
 export async function saveSongRemote(song: Song, userId: string): Promise<Song> {
   const row = songToRow(song, userId)

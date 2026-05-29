@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
-import { getUserStats, getRecentSessions, getReferralLink, saveSongRemote } from '@/lib/db'
+import { getUserStats, getRecentSessions, getReferralLink, pushSongsToCloud, fetchCloudSongCount } from '@/lib/db'
 import { getSong, getSongs } from '@/lib/storage'
 import type { UserStats, GameSession } from '@/types'
 
@@ -28,22 +28,23 @@ export function ProfilePage() {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [sessions, setSessions] = useState<GameSession[]>([])
   const [copied, setCopied] = useState(false)
+  const [cloudCount, setCloudCount] = useState<number | null>(null)
   const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<{ synced: number; total: number } | null>(null)
+  const [syncResult, setSyncResult] = useState<{ synced: number; failed: number; error: string | null } | null>(null)
+
+  useEffect(() => {
+    fetchCloudSongCount().then(setCloudCount)
+  }, [])
 
   async function syncToCloud() {
     if (!user || syncing) return
     setSyncing(true)
     setSyncResult(null)
     const localSongs = getSongs()
-    let synced = 0
-    for (const song of localSongs) {
-      try {
-        await saveSongRemote(song, user.id)
-        synced++
-      } catch { /* skip individual failures */ }
-    }
-    setSyncResult({ synced, total: localSongs.length })
+    const result = await pushSongsToCloud(localSongs, user.id)
+    setSyncResult({ synced: result.synced, failed: result.failed, error: result.firstError })
+    const newCount = await fetchCloudSongCount()
+    setCloudCount(newCount)
     setSyncing(false)
   }
 
@@ -136,35 +137,40 @@ export function ProfilePage() {
       </Card>
 
       {/* Cloud sync */}
-      {getSongs().length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Cloud sync</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                {syncResult
-                  ? `Synced ${syncResult.synced} of ${syncResult.total} songs to Supabase.`
-                  : `${getSongs().length} song${getSongs().length !== 1 ? 's' : ''} in local storage — push to cloud so they appear on all devices.`}
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 gap-1.5"
-                onClick={syncToCloud}
-                disabled={syncing || syncResult !== null}
-              >
-                {syncResult
-                  ? <><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> Done</>
-                  : syncing
-                    ? 'Syncing…'
-                    : <><CloudUpload className="h-3.5 w-3.5" /> Sync now</>}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Cloud sync</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span>Local: <strong className="text-foreground">{getSongs().length}</strong></span>
+            <span>Supabase: <strong className="text-foreground">{cloudCount === null ? '…' : cloudCount}</strong></span>
+          </div>
+
+          {syncResult?.error && (
+            <p className="text-xs text-red-500 break-all">
+              Error: {syncResult.error}
+            </p>
+          )}
+          {syncResult && !syncResult.error && (
+            <p className="text-xs text-green-600">
+              ✓ {syncResult.synced} pushed{syncResult.failed > 0 ? `, ${syncResult.failed} failed` : ''}
+            </p>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={syncToCloud}
+            disabled={syncing || getSongs().length === 0}
+          >
+            {syncing
+              ? 'Syncing…'
+              : <><CloudUpload className="h-3.5 w-3.5" /> Push local → cloud</>}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Appearance */}
       <Card>

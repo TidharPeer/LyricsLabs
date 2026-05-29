@@ -21,9 +21,11 @@ export function HomePage() {
   const [query, setQuery] = useState('')
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setFetchError(null)
     try {
       if (query.length >= 2) {
         setSongs(await searchSongs(query))
@@ -32,8 +34,9 @@ export function HomePage() {
       } else {
         setSongs(await fetchSongs())
       }
-    } catch {
-      // Offline fallback
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setFetchError(msg)
       const local = getSongs()
       setSongs(query ? local.filter(s =>
         s.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -95,6 +98,13 @@ export function HomePage() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+
+      {/* Supabase error banner — helps diagnose connectivity / RLS issues */}
+      {fetchError && (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 break-all">
+          Cloud error: {fetchError}
+        </div>
+      )}
 
       {/* Song list */}
       {loading ? (
