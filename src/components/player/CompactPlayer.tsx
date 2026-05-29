@@ -1,24 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { Music2, Video, VideoOff } from 'lucide-react'
+import { Music2, Video, VideoOff, Play, Pause } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { loadYTApi } from '@/lib/youtube'
 
 interface Props {
   videoId: string
   title: string
+  autoPlay?: boolean
 }
 
-/**
- * Keeps the YouTube iframe always rendered (never display:none or height:0)
- * so audio continues even when the video is visually hidden.
- * When "audio only", the iframe is 1×1px and transparent.
- */
-export function CompactPlayer({ videoId, title }: Props) {
+export function CompactPlayer({ videoId, title, autoPlay = false }: Props) {
   const playerDivRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YT.Player | null>(null)
   const [ready, setReady] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [audioOnly, setAudioOnly] = useState(false)
+  // When autoPlay, start open and in audio-only mode immediately
+  const [open, setOpen] = useState(autoPlay)
+  const [audioOnly, setAudioOnly] = useState(autoPlay)
+  const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
     if (!videoId || !playerDivRef.current) return
@@ -35,8 +33,21 @@ export function CompactPlayer({ videoId, title }: Props) {
         videoId,
         width: '100%',
         height: '100%',
-        playerVars: { rel: 0, modestbranding: 1 },
-        events: { onReady: () => setReady(true) },
+        playerVars: {
+          rel: 0,
+          modestbranding: 1,
+          autoplay: autoPlay ? 1 : 0,
+        },
+        events: {
+          onReady: (event) => {
+            setReady(true)
+            // Explicit playVideo as backup in case autoplay param is blocked
+            if (autoPlay) event.target.playVideo()
+          },
+          onStateChange: (event) => {
+            setPlaying(event.data === 1) // 1 = YT.PlayerState.PLAYING
+          },
+        },
       })
     })
 
@@ -44,60 +55,101 @@ export function CompactPlayer({ videoId, title }: Props) {
       try { playerRef.current?.destroy() } catch { /* ignore */ }
       playerRef.current = null
       setReady(false)
+      setPlaying(false)
     }
-  }, [videoId])
+  }, [videoId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The player div is ALWAYS in the DOM. We control its visual size:
-  // - Collapsed (not open): 1×1px transparent — audio paused since not started, won't auto-start
-  // - Open + video visible: normal 16:9
-  // - Open + audio only: 1×1px transparent — audio keeps playing
+  function togglePlay() {
+    if (!playerRef.current) return
+    if (playing) {
+      playerRef.current.pauseVideo()
+    } else {
+      playerRef.current.playVideo()
+    }
+  }
+
+  function handleClose() {
+    try { playerRef.current?.pauseVideo() } catch { /* ignore */ }
+    setOpen(false)
+    setAudioOnly(false)
+  }
+
   const showVideo = open && !audioOnly
 
   return (
     <div className="rounded-lg border bg-muted/30 overflow-hidden">
       {/* Control bar */}
-      <div className="flex items-center gap-3 px-4 py-2">
+      <div className="flex items-center gap-2 px-3 py-2">
+        {/* Animated dot: green + pulsing when playing, grey when paused/loading */}
+        <span
+          className={`shrink-0 w-2 h-2 rounded-full transition-colors ${
+            playing ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'
+          }`}
+        />
+
         <Music2 className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="flex-1 text-sm font-medium truncate">{title}</span>
 
         <div className="flex items-center gap-1">
-          {open && (
+          {open && ready && (
+            <>
+              {/* Play / Pause */}
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={togglePlay}>
+                {playing
+                  ? <Pause className="h-3.5 w-3.5" />
+                  : <Play className="h-3.5 w-3.5" />}
+              </Button>
+
+              {/* Show / hide video */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                title={audioOnly ? 'Show video' : 'Audio only (video hidden)'}
+                onClick={() => setAudioOnly((a) => !a)}
+              >
+                {audioOnly
+                  ? <Video className="h-3.5 w-3.5" />
+                  : <VideoOff className="h-3.5 w-3.5" />}
+              </Button>
+            </>
+          )}
+
+          {/* Open button — shown when closed */}
+          {!open && (
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7"
-              title={audioOnly ? 'Show video' : 'Audio only (video hidden)'}
-              onClick={() => setAudioOnly((a) => !a)}
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-3"
+              disabled={!ready}
+              onClick={() => { setOpen(true); setAudioOnly(true) }}
             >
-              {audioOnly
-                ? <Video className="h-3.5 w-3.5" />
-                : <VideoOff className="h-3.5 w-3.5" />}
+              {ready ? 'Play music' : 'Loading…'}
             </Button>
           )}
-          <Button
-            size="sm"
-            variant={open ? 'secondary' : 'default'}
-            className="h-7 text-xs px-3"
-            onClick={() => { setOpen((o) => !o); setAudioOnly(false) }}
-            disabled={!ready && !open}
-          >
-            {open ? 'Close' : ready ? 'Open player' : 'Loading…'}
-          </Button>
+
+          {/* Close / stop button */}
+          {open && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleClose}>
+              ✕
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Status bar when audio-only mode */}
+      {/* Status line under the bar */}
       {open && audioOnly && (
-        <div className="px-4 pb-2 text-xs text-muted-foreground flex items-center gap-1.5">
-          <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Playing audio in background
+        <div className="px-3 pb-2 text-xs text-muted-foreground">
+          {ready
+            ? playing ? 'Playing in background — click ✕ to stop' : 'Paused — press ▶ to resume'
+            : 'Loading player…'}
         </div>
       )}
 
       {/*
-        Player container — always rendered, never display:none.
-        Size changes between visible (aspect-video) and tiny (1×1px invisible).
-        This keeps the YouTube iframe alive so audio doesn't stop.
+        Player div — always in the DOM so YouTube keeps audio alive.
+        When video is hidden: 1×1px transparent (audio continues).
+        When video is shown: normal 16:9 embed.
       */}
       <div
         ref={playerDivRef}

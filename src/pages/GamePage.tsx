@@ -50,7 +50,11 @@ export function GamePage() {
       </div>
 
       {song.youtubeId && (
-        <CompactPlayer videoId={song.youtubeId} title={`${song.title} — ${song.artist}`} />
+        <CompactPlayer
+          videoId={song.youtubeId}
+          title={`${song.title} — ${song.artist}`}
+          autoPlay
+        />
       )}
 
       {mode === 'fill-blank' && <FillInTheBlank song={song} onBack={handleBack} />}
