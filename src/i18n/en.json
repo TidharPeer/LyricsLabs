@@ -1,0 +1,119 @@
+{
+  "app": {
+    "name": "LyricLab",
+    "tagline": "Learn songs by heart"
+  },
+  "nav": {
+    "home": "My Songs",
+    "addSong": "Add Song"
+  },
+  "home": {
+    "title": "My Songs",
+    "empty": "No songs yet. Add your first one!",
+    "addFirstSong": "Add a Song",
+    "search": "Search songs...",
+    "songCount_one": "{{count}} song",
+    "songCount_other": "{{count}} songs"
+  },
+  "song": {
+    "title": "Title",
+    "artist": "Artist",
+    "language": "Language",
+    "youtubeUrl": "YouTube URL",
+    "lyrics": "Lyrics",
+    "lyricsPlaceholder": "Paste song lyrics here, one line per row...",
+    "noLyrics": "No lyrics added yet.",
+    "lines_one": "{{count}} line",
+    "lines_other": "{{count}} lines"
+  },
+  "songForm": {
+    "addTitle": "Add New Song",
+    "editTitle": "Edit Song",
+    "save": "Save Song",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete Song",
+    "deleteConfirm": "Are you sure you want to delete this song?",
+    "urlHelp": "Paste a YouTube link (youtube.com/watch?v=... or youtu.be/...)",
+    "invalidUrl": "Could not find a YouTube video ID in that URL"
+  },
+  "songDetail": {
+    "karaoke": "Karaoke",
+    "lyrics": "Lyrics",
+    "practice": "Practice",
+    "editTimestamps": "Edit Timestamps",
+    "editSong": "Edit Song",
+    "noTimestamps": "No timestamps set. Add them to enable karaoke sync.",
+    "playToSync": "Play the video to see lyrics sync in real time."
+  },
+  "timestamp": {
+    "title": "Edit Timestamps",
+    "liveSyncMode": "Live Sync",
+    "manualMode": "Manual Edit",
+    "instructions": "Play the video and tap each line when it starts.",
+    "playThenStamp": "Play the video. As each line begins, tap the big button below — it stamps the current time and advances to the next line. Use Undo to remove the last stamp and rewind by 2 seconds.",
+    "stampNextLine": "Stamp Next Line",
+    "undoLast": "Undo Last",
+    "lineProgress": "{{stamped}} / {{total}} lines stamped",
+    "allStamped": "All lines stamped!",
+    "tap": "Tap",
+    "clear": "Clear",
+    "save": "Save Timestamps",
+    "saving": "Saving...",
+    "noLyrics": "This song has no lyrics to timestamp. Add lyrics first.",
+    "noVideo": "No YouTube video linked to this song.",
+    "timecodeHint": "or type seconds manually"
+  },
+  "game": {
+    "selectMode": "Choose Practice Mode",
+    "fillBlank": "Fill in the Blank",
+    "fillBlankDesc": "Some words are hidden — can you type them?",
+    "fadeout": "Fade-Out Challenge",
+    "fadeoutDesc": "Lyrics fade away round by round. How far can you go?",
+    "lineCompletion": "Line Completion",
+    "lineCompletionDesc": "You see the start of each line — finish the rest.",
+    "start": "Start",
+    "score": "Score",
+    "check": "Check",
+    "next": "Next",
+    "finish": "Finish",
+    "tryAgain": "Try Again",
+    "backToSong": "Back to Song",
+    "correct": "Correct!",
+    "incorrect": "Not quite",
+    "round": "Round {{round}} of {{total}}",
+    "revealRound": "Reveal Round",
+    "nextRound": "Next Round",
+    "finalScore": "Your Score: {{score}}%",
+    "perfect": "Perfect!",
+    "great": "Great job!",
+    "good": "Good effort!",
+    "keepPracticing": "Keep practicing!",
+    "wordsCorrect": "{{correct}} / {{total}} words correct",
+    "linesCorrect": "{{correct}} / {{total}} lines correct"
+  },
+  "languages": {
+    "en": "English",
+    "he": "Hebrew",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "ar": "Arabic",
+    "other": "Other"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "notFound": "Not found",
+    "back": "Back",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "close": "Close"
+  }
+}
