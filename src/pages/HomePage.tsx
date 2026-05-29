@@ -75,10 +75,12 @@ export function HomePage() {
     [songs]
   )
 
+  const ALL = '__all__'
+
   const filteredSongs = useMemo(() =>
     songs
-      .filter(s => !filterArtist || s.artist === filterArtist)
-      .filter(s => !filterLanguage || s.language === filterLanguage),
+      .filter(s => !filterArtist || filterArtist === ALL || s.artist === filterArtist)
+      .filter(s => !filterLanguage || filterLanguage === ALL || s.language === filterLanguage),
     [songs, filterArtist, filterLanguage]
   )
 
@@ -132,12 +134,12 @@ export function HomePage() {
       {!loading && songs.length > 1 && !query && (
         <div className="flex flex-wrap items-center gap-2">
           {uniqueArtists.length > 1 && (
-            <Select value={filterArtist} onValueChange={setFilterArtist}>
+            <Select value={filterArtist || ALL} onValueChange={v => setFilterArtist(v === ALL ? '' : v)}>
               <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
                 <SelectValue placeholder="All artists" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All artists</SelectItem>
+                <SelectItem value={ALL}>All artists</SelectItem>
                 {uniqueArtists.map(a => (
                   <SelectItem key={a} value={a}>{a}</SelectItem>
                 ))}
@@ -146,12 +148,12 @@ export function HomePage() {
           )}
 
           {uniqueLanguages.length > 1 && (
-            <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+            <Select value={filterLanguage || ALL} onValueChange={v => setFilterLanguage(v === ALL ? '' : v)}>
               <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
                 <SelectValue placeholder="All languages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All languages</SelectItem>
+                <SelectItem value={ALL}>All languages</SelectItem>
                 {uniqueLanguages.map(l => (
                   <SelectItem key={l} value={l}>{t(`languages.${l}`, l)}</SelectItem>
                 ))}
