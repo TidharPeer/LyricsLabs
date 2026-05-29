@@ -34,8 +34,19 @@
     "cancel": "Cancel",
     "delete": "Delete Song",
     "deleteConfirm": "Are you sure you want to delete this song?",
-    "urlHelp": "Paste a YouTube link (youtube.com/watch?v=... or youtu.be/...)",
-    "invalidUrl": "Could not find a YouTube video ID in that URL"
+    "urlHelp": "Paste a YouTube link — title and artist will be filled automatically",
+    "invalidUrl": "Could not find a YouTube video ID in that URL",
+    "fetching": "Fetching song info…",
+    "fetchOk": "Song info loaded",
+    "fetchFail": "Could not fetch song info",
+    "autoFilled": "Auto-filled from YouTube",
+    "lyricsFoundSynced": "Found synced lyrics ({{count}} lines + timestamps)",
+    "lyricsFound": "Found lyrics ({{count}} lines)",
+    "lyricsNotFound": "No lyrics found automatically",
+    "importLyrics": "Import lyrics",
+    "importLyricsSynced": "Import lyrics + timestamps",
+    "lyricsImported": "Lyrics imported!",
+    "lyricsReplaceWarning": "This will replace your current lyrics. Continue?"
   },
   "songDetail": {
     "karaoke": "Karaoke",
@@ -103,6 +114,7 @@
     "ru": "Russian",
     "ja": "Japanese",
     "ko": "Korean",
+    "zh": "Chinese",
     "ar": "Arabic",
     "other": "Other"
   },
