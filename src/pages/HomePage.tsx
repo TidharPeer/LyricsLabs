@@ -8,7 +8,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SongCard } from '@/components/songs/SongCard'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs } from '@/lib/db'
-import { getSongs } from '@/lib/storage'
 import type { Song } from '@/types'
 
 type View = 'all' | 'mine'
@@ -21,11 +20,11 @@ export function HomePage() {
   const [query, setQuery] = useState('')
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
-    setFetchError(null)
+    setError(null)
     try {
       if (query.length >= 2) {
         setSongs(await searchSongs(query))
@@ -35,13 +34,8 @@ export function HomePage() {
         setSongs(await fetchSongs())
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setFetchError(msg)
-      const local = getSongs()
-      setSongs(query ? local.filter(s =>
-        s.title.toLowerCase().includes(query.toLowerCase()) ||
-        s.artist.toLowerCase().includes(query.toLowerCase())
-      ) : local)
+      setError(err instanceof Error ? err.message : 'Failed to load songs')
+      setSongs([])
     } finally {
       setLoading(false)
     }
@@ -54,7 +48,6 @@ export function HomePage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('home.title')}</h1>
@@ -72,7 +65,6 @@ export function HomePage() {
         )}
       </div>
 
-      {/* All / My toggle (only when signed in) */}
       {user && (
         <Tabs value={view} onValueChange={(v) => { setView(v as View); setQuery('') }}>
           <TabsList>
@@ -88,7 +80,6 @@ export function HomePage() {
         </Tabs>
       )}
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -99,21 +90,19 @@ export function HomePage() {
         />
       </div>
 
-      {/* Supabase error banner — helps diagnose connectivity / RLS issues */}
-      {fetchError && (
+      {error && (
         <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 break-all">
-          Cloud error: {fetchError}
+          Could not load songs: {error}
         </div>
       )}
 
-      {/* Song list */}
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl border bg-muted/30 animate-pulse" />
           ))}
         </div>
-      ) : songs.length === 0 ? (
+      ) : songs.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
           <p className="text-muted-foreground mb-4">
             {query ? `No songs match "${query}"` : t('home.empty')}

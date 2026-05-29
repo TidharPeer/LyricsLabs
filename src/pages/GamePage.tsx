@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
-import { getSong } from '@/lib/storage'
+import { fetchSong, addStars, saveGameSessionRemote } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
 import { Button } from '@/components/ui/button'
 import { CompactPlayer } from '@/components/player/CompactPlayer'
@@ -11,9 +11,8 @@ import { FadeOutChallenge } from '@/components/games/FadeOutChallenge'
 import { LineCompletion } from '@/components/games/LineCompletion'
 import { StarsCounter } from '@/components/profile/StarsCounter'
 import { useAuth } from '@/contexts/AuthContext'
-import { addStars, saveGameSessionRemote } from '@/lib/db'
 import { scoreToStars } from '@/types'
-import type { GameMode } from '@/types'
+import type { Song, GameMode } from '@/types'
 
 export function GamePage() {
   const { t } = useTranslation()
@@ -21,10 +20,16 @@ export function GamePage() {
   const navigate = useNavigate()
   const { user, refreshStats } = useAuth()
 
-  const song = id ? getSong(id) : undefined
+  const [song, setSong] = useState<Song | null>(null)
+  const [loading, setLoading] = useState(true)
   const [starsEarned, setStarsEarned] = useState(0)
   const [showStars, setShowStars] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+
+  useEffect(() => {
+    if (!id) { setLoading(false); return }
+    fetchSong(id).then(s => { setSong(s ?? null); setLoading(false) })
+  }, [id])
 
   const activeLine = song ? findActiveLine(song.lyrics, currentTime) : -1
 
@@ -47,6 +52,10 @@ export function GamePage() {
       await refreshStats()
     }
   }, [user, refreshStats, song?.id, mode])
+
+  if (loading) {
+    return <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+  }
 
   if (!song) {
     return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon, CloudUpload } from 'lucide-react'
+import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -9,9 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
-import { getUserStats, getRecentSessions, getReferralLink, pushSongsToCloud, fetchCloudSongCount } from '@/lib/db'
-import { getSong, getSongs } from '@/lib/storage'
-import type { UserStats, GameSession } from '@/types'
+import { getUserStats, getRecentSessions, getReferralLink, fetchSongs } from '@/lib/db'
+import type { UserStats, GameSession, Song } from '@/types'
 
 const MODE_LABEL: Record<string, string> = {
   'fill-blank': 'Fill in the Blank',
@@ -27,31 +26,18 @@ export function ProfilePage() {
 
   const [stats, setStats] = useState<UserStats | null>(null)
   const [sessions, setSessions] = useState<GameSession[]>([])
+  const [songMap, setSongMap] = useState<Record<string, Song>>({})
   const [copied, setCopied] = useState(false)
-  const [cloudCount, setCloudCount] = useState<number | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<{ synced: number; failed: number; error: string | null } | null>(null)
-
-  useEffect(() => {
-    fetchCloudSongCount().then(setCloudCount)
-  }, [])
-
-  async function syncToCloud() {
-    if (!user || syncing) return
-    setSyncing(true)
-    setSyncResult(null)
-    const localSongs = getSongs()
-    const result = await pushSongsToCloud(localSongs, user.id)
-    setSyncResult({ synced: result.synced, failed: result.failed, error: result.firstError })
-    const newCount = await fetchCloudSongCount()
-    setCloudCount(newCount)
-    setSyncing(false)
-  }
 
   useEffect(() => {
     if (!user) { navigate('/auth', { replace: true }); return }
     getUserStats(user.id).then(setStats)
     getRecentSessions(user.id, 10).then(setSessions)
+    fetchSongs().then(songs => {
+      const map: Record<string, Song> = {}
+      songs.forEach(s => { map[s.id] = s })
+      setSongMap(map)
+    }).catch(() => {})
   }, [user, navigate])
 
   if (!user) return null
@@ -136,42 +122,6 @@ export function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Cloud sync */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Cloud sync</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>Local: <strong className="text-foreground">{getSongs().length}</strong></span>
-            <span>Supabase: <strong className="text-foreground">{cloudCount === null ? '…' : cloudCount}</strong></span>
-          </div>
-
-          {syncResult?.error && (
-            <p className="text-xs text-red-500 break-all">
-              Error: {syncResult.error}
-            </p>
-          )}
-          {syncResult && !syncResult.error && (
-            <p className="text-xs text-green-600">
-              ✓ {syncResult.synced} pushed{syncResult.failed > 0 ? `, ${syncResult.failed} failed` : ''}
-            </p>
-          )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={syncToCloud}
-            disabled={syncing || getSongs().length === 0}
-          >
-            {syncing
-              ? 'Syncing…'
-              : <><CloudUpload className="h-3.5 w-3.5" /> Push local → cloud</>}
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Appearance */}
       <Card>
         <CardHeader>
@@ -205,7 +155,7 @@ export function ProfilePage() {
           ) : (
             <div className="space-y-2">
               {sessions.map((s) => {
-                const song = getSong(s.songId)
+                const song = songMap[s.songId]
                 return (
                   <div key={s.id} className="flex items-center gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">

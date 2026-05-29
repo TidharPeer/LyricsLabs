@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getSong, deleteSong as localDelete, extractYouTubeId } from '@/lib/storage'
-import { saveSongRemote, deleteSongRemote } from '@/lib/db'
+import { extractYouTubeId } from '@/lib/storage'
+import { fetchSong, saveSongRemote, deleteSongRemote } from '@/lib/db'
 import { fetchYouTubeMetadata, fetchLyrics, type FetchedLyrics } from '@/lib/fetchSongData'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Song, LyricLine } from '@/types'
@@ -40,30 +40,46 @@ export function SongFormPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
-  const existing = id && id !== 'new' ? getSong(id) : undefined
+  const isEdit = !!id && id !== 'new'
+
+  const [existing, setExisting] = useState<Song | undefined>(undefined)
+  const [formReady, setFormReady] = useState(!isEdit)
+
+  const [title, setTitle] = useState('')
+  const [artist, setArtist] = useState('')
+  const [language, setLanguage] = useState('en')
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [lyricsText, setLyricsText] = useState('')
+  const [urlError, setUrlError] = useState('')
+  const [saveError, setSaveError] = useState('')
+
+  const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle')
+  const [fetchedLyrics, setFetchedLyrics] = useState<FetchedLyrics | null>(null)
+  const [lyricsImported, setLyricsImported] = useState(false)
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set())
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastFetchedId = useRef<string>('')
 
   // Redirect to auth if not signed in
   useEffect(() => {
     if (!user) navigate('/auth', { replace: true })
   }, [user, navigate])
 
-  const [title, setTitle] = useState(existing?.title ?? '')
-  const [artist, setArtist] = useState(existing?.artist ?? '')
-  const [language, setLanguage] = useState(existing?.language ?? 'en')
-  const [youtubeUrl, setYoutubeUrl] = useState(existing?.youtubeUrl ?? '')
-  const [lyricsText, setLyricsText] = useState(
-    existing?.lyrics.map((l) => l.text).join('\n') ?? ''
-  )
-  const [urlError, setUrlError] = useState('')
-
-  // Auto-fetch state
-  const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle')
-  const [fetchedLyrics, setFetchedLyrics] = useState<FetchedLyrics | null>(null)
-  const [lyricsImported, setLyricsImported] = useState(false)
-  // Track which fields were auto-filled so we can show a badge
-  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set())
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastFetchedId = useRef<string>('')
+  // Load existing song from Supabase when editing
+  useEffect(() => {
+    if (!isEdit || !id) return
+    fetchSong(id).then(song => {
+      if (song) {
+        setExisting(song)
+        setTitle(song.title)
+        setArtist(song.artist)
+        setLanguage(song.language)
+        setYoutubeUrl(song.youtubeUrl)
+        setLyricsText(song.lyrics.map((l) => l.text).join('\n'))
+      }
+      setFormReady(true)
+    })
+  }, [id, isEdit])
 
   // Watch URL field: debounce, extract ID, fetch metadata + lyrics
   useEffect(() => {
@@ -84,18 +100,15 @@ export function SongFormPage() {
         return
       }
 
-      // Auto-fill only empty fields
       const filled = new Set<string>()
       if (!title.trim()) { setTitle(metadata.title); filled.add('title') }
       if (!artist.trim()) { setArtist(metadata.artist); filled.add('artist') }
-      // Always suggest detected language (user can override)
       setLanguage(metadata.language)
       filled.add('language')
 
       setAutoFilledFields(filled)
       setFetchStatus('ok')
 
-      // Now try to fetch lyrics in the background
       const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
       setFetchedLyrics(lyrics)
     }, 700)
@@ -110,13 +123,13 @@ export function SongFormPage() {
 
   async function handleSave() {
     setUrlError('')
+    setSaveError('')
     const youtubeId = extractYouTubeId(youtubeUrl)
     if (youtubeUrl && !youtubeId) {
       setUrlError(t('songForm.invalidUrl'))
       return
     }
 
-    // If synced lyrics were imported, use them directly (with timestamps)
     let lyrics: LyricLine[]
     if (lyricsImported && fetchedLyrics?.synced) {
       lyrics = fetchedLyrics.lines
@@ -137,21 +150,30 @@ export function SongFormPage() {
       createdAt: existing?.createdAt ?? Date.now(),
     }
 
-    if (user) {
+    if (!user) { navigate('/auth'); return }
+
+    try {
       const saved = await saveSongRemote(song, user.id)
       navigate(`/songs/${saved.id}`)
-    } else {
-      navigate('/auth')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
     }
   }
 
   async function handleDelete() {
     if (!existing) return
     if (window.confirm(t('songForm.deleteConfirm'))) {
-      await deleteSongRemote(existing.id)
-      localDelete(existing.id)
-      navigate('/')
+      try {
+        await deleteSongRemote(existing.id)
+        navigate('/')
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to delete')
+      }
     }
+  }
+
+  if (!formReady) {
+    return <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
   }
 
   return (
@@ -165,7 +187,12 @@ export function SongFormPage() {
         </h1>
       </div>
 
-      {/* YouTube URL — first, because it drives auto-fill */}
+      {saveError && (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between">
@@ -201,7 +228,6 @@ export function SongFormPage() {
         </CardContent>
       </Card>
 
-      {/* Song details — auto-filled after URL fetch */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -249,13 +275,11 @@ export function SongFormPage() {
         </CardContent>
       </Card>
 
-      {/* Lyrics */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t('song.lyrics')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Lyrics fetch result banner */}
           {fetchStatus === 'ok' && fetchedLyrics && !lyricsImported && (
             <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
               <div className="flex items-center gap-2 text-sm text-green-800">
@@ -267,9 +291,7 @@ export function SongFormPage() {
                 </span>
               </div>
               <Button size="sm" variant="outline" className="h-7 text-xs shrink-0 border-green-300 text-green-700 hover:bg-green-100" onClick={importLyrics}>
-                {fetchedLyrics.synced
-                  ? t('songForm.importLyricsSynced')
-                  : t('songForm.importLyrics')}
+                {fetchedLyrics.synced ? t('songForm.importLyricsSynced') : t('songForm.importLyrics')}
               </Button>
             </div>
           )}

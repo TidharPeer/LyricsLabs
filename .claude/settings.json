@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node \"C:\\\\Users\\\\Tidha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-Songs\\\\ff8b0ee4-004d-4678-a8b1-7e00086be11b\\\\tasks\\\\verify_lyriclab.mjs\" 2>&1; Write-Host \"exit: $LASTEXITCODE\")",
+      "Bash(Select-String '\"vite\"')",
+      "Bash(Select-String '\"vite\"' c:\\\\dev\\\\Songs\\\\package.json)",
+      "Bash(git -C \"c:/dev/Songs\" add src/styles/theme.ts)",
+      "Bash(git -C c:/dev/Songs commit -m ' *)",
+      "Bash(git -C \"c:/dev/Songs\" push)",
+      "Bash(git -C \"c:/dev/Songs\" add src/lib/activeLine.ts src/styles/lyricLine.ts src/components/player/KaraokeView.tsx src/components/player/CompactPlayer.tsx src/pages/GamePage.tsx src/components/games/FillInTheBlank.tsx src/components/games/FadeOutChallenge.tsx src/components/games/LineCompletion.tsx)",
+      "Bash(git -C \"c:/dev/Songs\" add src/components/player/CompactPlayer.tsx)",
+      "Bash(Get-ChildItem -Path \"c:\\\\dev\\\\Songs\\\\supabase\" -Recurse)",
+      "Bash(Select-Object FullName)",
+      "Bash(git -C \"c:/dev/Songs\" add supabase/rls_policies.sql src/lib/db.ts)",
+      "Bash(git -C \"c:/dev/Songs\" add src/pages/ProfilePage.tsx)",
+      "Bash(git -C \"c:/dev/Songs\" add src/lib/db.ts src/pages/ProfilePage.tsx src/pages/HomePage.tsx)",
+      "Bash(git -C \"c:/dev/Songs\" add -A)"
+    ]
+  }
+}

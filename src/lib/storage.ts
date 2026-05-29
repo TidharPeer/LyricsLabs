@@ -1,38 +1,6 @@
-import type { Song, GameSession } from '@/types'
+import type { GameSession } from '@/types'
 
-const SONGS_KEY = 'songs'
 const SESSIONS_KEY = 'gameSessions'
-
-export function getSongs(): Song[] {
-  try {
-    return JSON.parse(localStorage.getItem(SONGS_KEY) ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-export function saveSongs(songs: Song[]): void {
-  localStorage.setItem(SONGS_KEY, JSON.stringify(songs))
-}
-
-export function getSong(id: string): Song | undefined {
-  return getSongs().find((s) => s.id === id)
-}
-
-export function upsertSong(song: Song): void {
-  const songs = getSongs()
-  const idx = songs.findIndex((s) => s.id === song.id)
-  if (idx >= 0) {
-    songs[idx] = song
-  } else {
-    songs.unshift(song)
-  }
-  saveSongs(songs)
-}
-
-export function deleteSong(id: string): void {
-  saveSongs(getSongs().filter((s) => s.id !== id))
-}
 
 export function getGameSessions(): GameSession[] {
   try {

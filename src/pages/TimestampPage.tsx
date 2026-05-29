@@ -1,15 +1,27 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { getSong } from '@/lib/storage'
+import { fetchSong } from '@/lib/db'
 import { TimestampEditor } from '@/components/player/TimestampEditor'
+import type { Song } from '@/types'
 
 export function TimestampPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const song = id ? getSong(id) : undefined
+  const [song, setSong] = useState<Song | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) { setLoading(false); return }
+    fetchSong(id).then(s => { setSong(s ?? null); setLoading(false) })
+  }, [id])
+
+  if (loading) {
+    return <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+  }
 
   if (!song) {
     return (

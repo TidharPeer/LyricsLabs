@@ -1,32 +1,23 @@
 /**
- * Data layer — Supabase-backed with localStorage cache.
- * Write to Supabase first; on success mirror to localStorage.
- * Reads prefer Supabase but fall back to localStorage if offline.
+ * Data layer — Supabase only. No localStorage for songs.
+ * Game sessions still have a local backup in storage.ts.
  */
 import { supabase } from './supabase'
-import { getSongs as localGetSongs, saveSongs, upsertSong as localUpsert, deleteSong as localDelete, getGameSessions } from './storage'
+import { getGameSessions } from './storage'
 import type { Song, GameSession, UserStats } from '@/types'
 
 // ─── Songs ────────────────────────────────────────────────────────────────────
 
-/** Fetch shared song pool from Supabase, fall back to localStorage cache. */
 export async function fetchSongs(): Promise<Song[]> {
   const { data, error } = await supabase
     .from('songs')
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (error) {
-    console.warn('fetchSongs Supabase error:', error.message)
-    return localGetSongs()
-  }
-
-  const songs = data.map(rowToSong)
-  saveSongs(songs) // update local cache
-  return songs
+  if (error) throw new Error(error.message)
+  return data.map(rowToSong)
 }
 
-/** Fetch songs created by a specific user. */
 export async function fetchMySongs(userId: string): Promise<Song[]> {
   const { data, error } = await supabase
     .from('songs')
@@ -34,15 +25,24 @@ export async function fetchMySongs(userId: string): Promise<Song[]> {
     .eq('created_by', userId)
     .order('created_at', { ascending: false })
 
-  if (error || !data) return localGetSongs().filter((s) => s.createdBy === userId)
+  if (error) throw new Error(error.message)
   return data.map(rowToSong)
 }
 
-/** Full-text search over title, artist, and lyric text. */
+export async function fetchSong(id: string): Promise<Song | undefined> {
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) return undefined
+  return rowToSong(data)
+}
+
 export async function searchSongs(query: string): Promise<Song[]> {
   if (!query.trim()) return fetchSongs()
 
-  // Try full-text search first
   const { data: ftData } = await supabase
     .from('songs')
     .select('*')
@@ -52,64 +52,18 @@ export async function searchSongs(query: string): Promise<Song[]> {
 
   if (ftData && ftData.length > 0) return ftData.map(rowToSong)
 
-  // Fall back to ILIKE for partial matches
   const term = `%${query}%`
-  const { data: likeData } = await supabase
+  const { data: likeData, error } = await supabase
     .from('songs')
     .select('*')
     .or(`title.ilike.${term},artist.ilike.${term}`)
     .order('created_at', { ascending: false })
     .limit(50)
 
-  if (likeData) return likeData.map(rowToSong)
-
-  // Last resort: local filter
-  return localGetSongs().filter(
-    (s) =>
-      s.title.toLowerCase().includes(query.toLowerCase()) ||
-      s.artist.toLowerCase().includes(query.toLowerCase()) ||
-      s.lyrics.some((l) => l.text.toLowerCase().includes(query.toLowerCase()))
-  )
+  if (error) throw new Error(error.message)
+  return (likeData ?? []).map(rowToSong)
 }
 
-/** Push a batch of songs to Supabase. Returns accurate success/fail counts. */
-export async function pushSongsToCloud(
-  songs: Song[],
-  userId: string
-): Promise<{ synced: number; failed: number; firstError: string | null }> {
-  let synced = 0
-  let failed = 0
-  let firstError: string | null = null
-
-  for (const song of songs) {
-    const row = songToRow(song, userId)
-    const { error } = await supabase
-      .from('songs')
-      .upsert(row, { onConflict: 'id' })
-
-    if (error) {
-      failed++
-      if (!firstError) firstError = error.message
-    } else {
-      synced++
-      localUpsert({ ...song, createdBy: userId })
-    }
-  }
-
-  return { synced, failed, firstError }
-}
-
-/** Count how many songs are currently in Supabase (visible to this user). */
-export async function fetchCloudSongCount(): Promise<number | null> {
-  const { count, error } = await supabase
-    .from('songs')
-    .select('*', { count: 'exact', head: true })
-
-  if (error) return null
-  return count ?? 0
-}
-
-/** Save a song to Supabase + local cache. */
 export async function saveSongRemote(song: Song, userId: string): Promise<Song> {
   const row = songToRow(song, userId)
 
@@ -119,21 +73,13 @@ export async function saveSongRemote(song: Song, userId: string): Promise<Song> 
     .select()
     .single()
 
-  if (error || !data) {
-    // Offline — save locally only
-    localUpsert({ ...song, createdBy: userId })
-    return song
-  }
-
-  const saved = rowToSong(data)
-  localUpsert(saved)
-  return saved
+  if (error) throw new Error(error.message)
+  return rowToSong(data)
 }
 
-/** Delete a song from Supabase + local cache. */
 export async function deleteSongRemote(id: string): Promise<void> {
-  await supabase.from('songs').delete().eq('id', id)
-  localDelete(id)
+  const { error } = await supabase.from('songs').delete().eq('id', id)
+  if (error) throw new Error(error.message)
 }
 
 // ─── User stats ───────────────────────────────────────────────────────────────
@@ -156,10 +102,6 @@ export async function getUserStats(userId: string): Promise<UserStats> {
   }
 }
 
-/**
- * Award stars — no RPC needed, plain read-then-upsert.
- * Returns updated UserStats so callers can refresh UI immediately.
- */
 export async function addStars(userId: string, amount: number): Promise<UserStats> {
   const current = await getUserStats(userId)
   const newStars = current.stars + amount
@@ -169,19 +111,17 @@ export async function addStars(userId: string, amount: number): Promise<UserStat
   return { ...current, stars: newStars }
 }
 
-/** Update daily streak and award daily login star + any milestone bonuses. */
 export async function updateStreak(userId: string): Promise<UserStats> {
   const today = new Date().toISOString().slice(0, 10)
   const stats = await getUserStats(userId)
 
-  if (stats.lastActiveDate === today) return stats // already counted today
+  if (stats.lastActiveDate === today) return stats
 
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
   const newStreak = stats.lastActiveDate === yesterday ? stats.streakCurrent + 1 : 1
   const newBest   = Math.max(stats.streakBest, newStreak)
 
-  // All star awards in one upsert — no double-count
-  let bonus = 1 // daily login
+  let bonus = 1
   if (newStreak === 7)  bonus += 5
   if (newStreak === 30) bonus += 20
 
@@ -205,12 +145,10 @@ export async function saveGameSessionRemote(
   session: GameSession,
   userId: string
 ): Promise<void> {
-  // Game components already saved locally — only push to Supabase here.
-  // song_id may reference a local-only song so pass null to avoid FK failure.
   const { error } = await supabase.from('game_sessions').insert({
     id: session.id,
     user_id: userId,
-    song_id: null,          // avoids FK violation for locally-only songs
+    song_id: null,
     mode: session.mode,
     score: session.score,
     stars_earned: session.starsEarned ?? 0,
@@ -243,12 +181,10 @@ export async function getRecentSessions(userId: string, limit = 20): Promise<Gam
 
 export function getReferralLink(userId: string): string {
   const base = import.meta.env.VITE_APP_URL ?? window.location.origin
-  // Short code = first 8 chars of userId (UUID)
   return `${base}?ref=${userId.slice(0, 8)}`
 }
 
 export async function handleReferral(refCode: string, newUserId: string): Promise<void> {
-  // Find the referrer whose id starts with this code
   const { data: referrer } = await supabase
     .from('user_stats')
     .select('user_id')
@@ -257,14 +193,12 @@ export async function handleReferral(refCode: string, newUserId: string): Promis
 
   if (!referrer || referrer.user_id === newUserId) return
 
-  // Record referral
   const { error } = await supabase.from('referrals').insert({
     referrer_id: referrer.user_id,
     referred_user_id: newUserId,
   })
 
   if (!error) {
-    // Welcome bonus for new user + reward for referrer
     await addStars(newUserId, 5)
     await addStars(referrer.user_id, 10)
     await supabase

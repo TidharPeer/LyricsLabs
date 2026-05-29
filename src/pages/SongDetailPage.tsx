@@ -1,24 +1,36 @@
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Clock, Gamepad2 } from 'lucide-react'
-import { getSong } from '@/lib/storage'
+import { fetchSong } from '@/lib/db'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
-import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { KaraokeView } from '@/components/player/KaraokeView'
+import type { Song } from '@/types'
 
 export function SongDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-
   const { user, refreshStats } = useAuth()
+
+  const [song, setSong] = useState<Song | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) { setLoading(false); return }
+    fetchSong(id).then(s => { setSong(s ?? null); setLoading(false) })
+  }, [id])
+
   const handleStarEarned = useCallback(() => { refreshStats() }, [refreshStats])
-  const song = id ? getSong(id) : undefined
+
+  if (loading) {
+    return <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
+  }
 
   if (!song) {
     return (
