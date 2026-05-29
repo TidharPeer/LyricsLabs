@@ -18,7 +18,7 @@ export function GamePage() {
   const { t } = useTranslation()
   const { id, mode } = useParams<{ id: string; mode: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, refreshStats } = useAuth()
 
   const song = id ? getSong(id) : undefined
   const [starsEarned, setStarsEarned] = useState(0)
@@ -26,11 +26,13 @@ export function GamePage() {
 
   const handleGameComplete = useCallback(async (score: number, sessionId: string) => {
     const stars = scoreToStars(score)
-    if (user && stars > 0) {
-      await addStars(user.id, stars)
-      setStarsEarned(stars)
-      setShowStars(true)
-      // Update the session record with stars earned
+    if (user) {
+      if (stars > 0) {
+        await addStars(user.id, stars)
+        setStarsEarned(stars)
+        setShowStars(true)
+      }
+      // Save to Supabase (game component already saved locally)
       await saveGameSessionRemote({
         id: sessionId,
         songId: song?.id ?? '',
@@ -39,8 +41,10 @@ export function GamePage() {
         score,
         starsEarned: stars,
       }, user.id)
+      // Refresh header stars immediately
+      await refreshStats()
     }
-  }, [user, song?.id, mode])
+  }, [user, refreshStats, song?.id, mode])
 
   if (!song) {
     return (

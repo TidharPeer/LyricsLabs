@@ -9,6 +9,7 @@ import type { Song, LyricLine } from '@/types'
 interface Props {
   song: Song
   userId?: string
+  onStarEarned?: () => void
 }
 
 const pulse = keyframes`
@@ -47,7 +48,7 @@ function findActiveLine(lyrics: LyricLine[], currentTime: number): number {
   return active
 }
 
-export function KaraokeView({ song, userId }: Props) {
+export function KaraokeView({ song, userId, onStarEarned }: Props) {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
   const [playerReady, setPlayerReady] = useState(false)
@@ -86,7 +87,7 @@ export function KaraokeView({ song, userId }: Props) {
               // Award 1 star after 30 s of karaoke (once per session)
               if (!karaokeStarGiven.current && t >= 30 && userId) {
                 karaokeStarGiven.current = true
-                addStars(userId, 1).catch(() => {})
+                addStars(userId, 1).then(() => onStarEarned?.()).catch(() => {})
               }
             }, 250)
           },

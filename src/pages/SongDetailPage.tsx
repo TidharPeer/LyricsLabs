@@ -4,6 +4,7 @@ import { ArrowLeft, Edit, Clock, Gamepad2 } from 'lucide-react'
 import { getSong } from '@/lib/storage'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,7 +16,8 @@ export function SongDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const { user } = useAuth()
+  const { user, refreshStats } = useAuth()
+  const handleStarEarned = useCallback(() => { refreshStats() }, [refreshStats])
   const song = id ? getSong(id) : undefined
 
   if (!song) {
@@ -73,7 +75,7 @@ export function SongDetailPage() {
         </TabsList>
 
         <TabsContent value="karaoke" className="mt-4">
-          <KaraokeView song={song} userId={user?.id} />
+          <KaraokeView song={song} userId={user?.id} onStarEarned={handleStarEarned} />
         </TabsContent>
 
         <TabsContent value="lyrics" className="mt-4">

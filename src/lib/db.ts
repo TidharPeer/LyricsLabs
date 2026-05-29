@@ -4,7 +4,7 @@
  * Reads prefer Supabase but fall back to localStorage if offline.
  */
 import { supabase } from './supabase'
-import { getSongs as localGetSongs, saveSongs, upsertSong as localUpsert, deleteSong as localDelete, getGameSessions, saveGameSession as localSaveSession } from './storage'
+import { getSongs as localGetSongs, saveSongs, upsertSong as localUpsert, deleteSong as localDelete, getGameSessions } from './storage'
 import type { Song, GameSession, UserStats } from '@/types'
 
 // ─── Songs ────────────────────────────────────────────────────────────────────
@@ -116,38 +116,47 @@ export async function getUserStats(userId: string): Promise<UserStats> {
   }
 }
 
-/** Award stars to a user. Returns new star total. */
-export async function addStars(userId: string, amount: number): Promise<number> {
-  // Use Postgres RPC to atomically increment
-  const { data } = await supabase.rpc('add_stars', { p_user_id: userId, p_amount: amount })
-  return (data as number | null) ?? 0
+/**
+ * Award stars — no RPC needed, plain read-then-upsert.
+ * Returns updated UserStats so callers can refresh UI immediately.
+ */
+export async function addStars(userId: string, amount: number): Promise<UserStats> {
+  const current = await getUserStats(userId)
+  const newStars = current.stars + amount
+  await supabase
+    .from('user_stats')
+    .upsert({ user_id: userId, stars: newStars, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  return { ...current, stars: newStars }
 }
 
-/** Update daily streak and award daily star. Called on each login. */
+/** Update daily streak and award daily login star + any milestone bonuses. */
 export async function updateStreak(userId: string): Promise<UserStats> {
   const today = new Date().toISOString().slice(0, 10)
   const stats = await getUserStats(userId)
 
-  if (stats.lastActiveDate === today) return stats // already updated today
+  if (stats.lastActiveDate === today) return stats // already counted today
 
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
   const newStreak = stats.lastActiveDate === yesterday ? stats.streakCurrent + 1 : 1
-  const newBest = Math.max(stats.streakBest, newStreak)
+  const newBest   = Math.max(stats.streakBest, newStreak)
+
+  // All star awards in one upsert — no double-count
+  let bonus = 1 // daily login
+  if (newStreak === 7)  bonus += 5
+  if (newStreak === 30) bonus += 20
+
+  const newStars = stats.stars + bonus
 
   await supabase.from('user_stats').upsert({
     user_id: userId,
-    stars: stats.stars + 1, // daily login star
+    stars: newStars,
     streak_current: newStreak,
     streak_best: newBest,
     last_active_date: today,
     updated_at: new Date().toISOString(),
-  })
+  }, { onConflict: 'user_id' })
 
-  // Milestone bonuses
-  if (newStreak === 7)  await addStars(userId, 5)
-  if (newStreak === 30) await addStars(userId, 20)
-
-  return { ...stats, streakCurrent: newStreak, streakBest: newBest, lastActiveDate: today }
+  return { userId, stars: newStars, streakCurrent: newStreak, streakBest: newBest, lastActiveDate: today }
 }
 
 // ─── Game sessions ────────────────────────────────────────────────────────────
@@ -156,16 +165,18 @@ export async function saveGameSessionRemote(
   session: GameSession,
   userId: string
 ): Promise<void> {
-  await supabase.from('game_sessions').insert({
+  // Game components already saved locally — only push to Supabase here.
+  // song_id may reference a local-only song so pass null to avoid FK failure.
+  const { error } = await supabase.from('game_sessions').insert({
     id: session.id,
     user_id: userId,
-    song_id: session.songId,
+    song_id: null,          // avoids FK violation for locally-only songs
     mode: session.mode,
     score: session.score,
     stars_earned: session.starsEarned ?? 0,
     completed_at: new Date(session.completedAt).toISOString(),
   })
-  localSaveSession(session)
+  if (error) console.warn('saveGameSessionRemote:', error.message)
 }
 
 export async function getRecentSessions(userId: string, limit = 20): Promise<GameSession[]> {

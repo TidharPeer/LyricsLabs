@@ -1,11 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { updateStreak } from '@/lib/db'
+import { updateStreak, getUserStats } from '@/lib/db'
+import type { UserStats } from '@/types'
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
+  stats: UserStats | null
+  refreshStats: () => Promise<void>
   signUp: (email: string, password: string) => Promise<{ error: string | null }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<{ error: string | null }>
@@ -17,21 +20,30 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<UserStats | null>(null)
+
+  const refreshStats = useCallback(async () => {
+    if (!user) return
+    const s = await getUserStats(user.id)
+    setStats(s)
+  }, [user])
 
   useEffect(() => {
-    // Restore session on mount
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null
       setUser(newUser)
       if (newUser) {
-        // Update streak on each login/session restore (idempotent for same day)
-        updateStreak(newUser.id).catch(() => { /* ignore offline */ })
+        // updateStreak is idempotent for the same day; it returns fresh stats
+        updateStreak(newUser.id)
+          .then(setStats)
+          .catch(() => getUserStats(newUser.id).then(setStats))
+      } else {
+        setStats(null)
       }
     })
 
@@ -61,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, stats, refreshStats, signUp, signIn, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   )

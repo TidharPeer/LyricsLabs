@@ -1,23 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { User, LogOut, Star, Flame } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
-import { getUserStats } from '@/lib/db'
-import type { UserStats } from '@/types'
 
 export function UserMenu() {
   const { t } = useTranslation()
-  const { user, signOut } = useAuth()
+  const { user, signOut, stats } = useAuth()  // stats live in AuthContext — always fresh
   const navigate = useNavigate()
-  const [stats, setStats] = useState<UserStats | null>(null)
   const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    if (!user) { setStats(null); return }
-    getUserStats(user.id).then(setStats)
-  }, [user])
 
   if (!user) {
     return (
