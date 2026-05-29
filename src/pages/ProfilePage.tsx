@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon, CloudUpload, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
-import { getUserStats, getRecentSessions, getReferralLink } from '@/lib/db'
-import { getSong } from '@/lib/storage'
+import { getUserStats, getRecentSessions, getReferralLink, saveSongRemote } from '@/lib/db'
+import { getSong, getSongs } from '@/lib/storage'
 import type { UserStats, GameSession } from '@/types'
 
 const MODE_LABEL: Record<string, string> = {
@@ -28,6 +28,24 @@ export function ProfilePage() {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [sessions, setSessions] = useState<GameSession[]>([])
   const [copied, setCopied] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ synced: number; total: number } | null>(null)
+
+  async function syncToCloud() {
+    if (!user || syncing) return
+    setSyncing(true)
+    setSyncResult(null)
+    const localSongs = getSongs()
+    let synced = 0
+    for (const song of localSongs) {
+      try {
+        await saveSongRemote(song, user.id)
+        synced++
+      } catch { /* skip individual failures */ }
+    }
+    setSyncResult({ synced, total: localSongs.length })
+    setSyncing(false)
+  }
 
   useEffect(() => {
     if (!user) { navigate('/auth', { replace: true }); return }
@@ -116,6 +134,37 @@ export function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cloud sync */}
+      {getSongs().length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Cloud sync</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                {syncResult
+                  ? `Synced ${syncResult.synced} of ${syncResult.total} songs to Supabase.`
+                  : `${getSongs().length} song${getSongs().length !== 1 ? 's' : ''} in local storage — push to cloud so they appear on all devices.`}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 gap-1.5"
+                onClick={syncToCloud}
+                disabled={syncing || syncResult !== null}
+              >
+                {syncResult
+                  ? <><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> Done</>
+                  : syncing
+                    ? 'Syncing…'
+                    : <><CloudUpload className="h-3.5 w-3.5" /> Sync now</>}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Appearance */}
       <Card>
