@@ -16,7 +16,10 @@ export async function fetchSongs(): Promise<Song[]> {
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (error || !data) return localGetSongs()
+  if (error) {
+    console.warn('fetchSongs Supabase error:', error.message)
+    return localGetSongs()
+  }
 
   const songs = data.map(rowToSong)
   saveSongs(songs) // update local cache
