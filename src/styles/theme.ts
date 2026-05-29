@@ -37,4 +37,7 @@ export const darkTheme = {
   colors,
 }
 
-export type AppTheme = typeof lightTheme
+export type AppTheme = {
+  mode: 'light' | 'dark'
+  colors: typeof colors
+}
