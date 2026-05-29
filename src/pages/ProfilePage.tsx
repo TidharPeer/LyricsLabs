@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Star, Flame, Copy, Check, Music2 } from 'lucide-react'
+import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { getUserStats, getRecentSessions, getReferralLink } from '@/lib/db'
 import { getSong } from '@/lib/storage'
 import type { UserStats, GameSession } from '@/types'
@@ -21,6 +22,7 @@ const MODE_LABEL: Record<string, string> = {
 export function ProfilePage() {
   const { t } = useTranslation()
   const { user, signOut } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const [stats, setStats] = useState<UserStats | null>(null)
@@ -111,6 +113,28 @@ export function ProfilePage() {
               {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? t('profile.copied') : 'Copy'}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {theme === 'dark' ? 'Dark mode' : 'Light mode'}
+            </span>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+            >
+              {theme === 'dark'
+                ? <><Sun className="h-4 w-4" /> Switch to light</>
+                : <><Moon className="h-4 w-4" /> Switch to dark</>}
+            </button>
           </div>
         </CardContent>
       </Card>

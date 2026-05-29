@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { User, LogOut, Star, Flame } from 'lucide-react'
+import { User, LogOut, Star, Flame, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export function UserMenu() {
   const { t } = useTranslation()
-  const { user, signOut, stats } = useAuth()  // stats live in AuthContext — always fresh
+  const { user, signOut, stats } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
@@ -27,21 +29,18 @@ export function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted transition-colors"
       >
-        {/* Stars */}
         {stats !== null && (
           <span className="flex items-center gap-0.5 text-xs font-medium text-amber-500">
             <Star className="h-3.5 w-3.5 fill-amber-500" />
             {stats.stars}
           </span>
         )}
-        {/* Streak */}
         {stats !== null && stats.streakCurrent > 0 && (
           <span className="flex items-center gap-0.5 text-xs font-medium text-orange-500">
             <Flame className="h-3.5 w-3.5 fill-orange-400" />
             {stats.streakCurrent}
           </span>
         )}
-        {/* Avatar */}
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
           {initials}
         </span>
@@ -49,10 +48,8 @@ export function UserMenu() {
 
       {open && (
         <>
-          {/* Backdrop */}
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-1 z-40 w-44 rounded-lg border bg-popover shadow-md py-1">
+          <div className="absolute right-0 top-full mt-1 z-40 w-48 rounded-lg border bg-popover shadow-md py-1">
             <button
               className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
               onClick={() => { navigate('/'); setOpen(false) }}
@@ -66,6 +63,15 @@ export function UserMenu() {
             >
               <Star className="h-4 w-4" />
               {t('auth.profile')}
+            </button>
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark'
+                ? <Sun className="h-4 w-4" />
+                : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </button>
             <div className="border-t my-1" />
             <button

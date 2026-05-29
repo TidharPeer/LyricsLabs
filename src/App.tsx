@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Layout } from '@/components/layout/Layout'
 import { HomePage } from '@/pages/HomePage'
@@ -12,6 +13,7 @@ import { ProfilePage } from '@/pages/ProfilePage'
 export default function App() {
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <AuthProvider>
         <Routes>
           {/* Auth page has its own full-screen layout */}
@@ -33,6 +35,7 @@ export default function App() {
           } />
         </Routes>
       </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

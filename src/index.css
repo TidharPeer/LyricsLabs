@@ -4,48 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    /* Named color palette — static RGB values */
+    --gray-00: rgb(255, 255, 255);
+    --gray-01: rgb(250, 250, 250);
+    --gray-02: rgb(244, 244, 245);
+    --gray-03: rgb(228, 228, 231);
+    --gray-04: rgb(212, 212, 216);
+    --gray-05: rgb(161, 161, 170);
+    --gray-06: rgb(113, 113, 122);
+    --gray-07: rgb(82, 82, 91);
+    --gray-08: rgb(63, 63, 70);
+    --gray-09: rgb(39, 39, 42);
+    --gray-10: rgb(9, 9, 11);
+
+    --red-50:  rgb(254, 242, 242);
+    --red-100: rgb(254, 226, 226);
+    --red-200: rgb(254, 202, 202);
+    --red-300: rgb(252, 165, 165);
+    --red-400: rgb(248, 113, 113);
+    --red-500: rgb(239, 68, 68);
+    --red-600: rgb(220, 38, 38);
+    --red-700: rgb(185, 28, 28);
+    --red-800: rgb(153, 27, 27);
+    --red-900: rgb(127, 29, 29);
+    --red-950: rgb(69, 10, 10);
+
     --radius: 0.5rem;
+
+    /* Semantic roles — light mode */
+    --background:            var(--gray-00);
+    --foreground:            var(--gray-10);
+    --card:                  var(--gray-00);
+    --card-foreground:       var(--gray-10);
+    --popover:               var(--gray-00);
+    --popover-foreground:    var(--gray-10);
+    --primary:               var(--gray-09);
+    --primary-foreground:    var(--gray-01);
+    --secondary:             var(--gray-02);
+    --secondary-foreground:  var(--gray-09);
+    --muted:                 var(--gray-02);
+    --muted-foreground:      var(--gray-06);
+    --accent:                var(--gray-02);
+    --accent-foreground:     var(--gray-09);
+    --destructive:           var(--red-500);
+    --destructive-foreground: var(--gray-01);
+    --border:                var(--gray-03);
+    --input:                 var(--gray-03);
+    --ring:                  var(--gray-09);
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    /* Semantic roles — dark mode */
+    --background:            var(--gray-10);
+    --foreground:            var(--gray-01);
+    --card:                  var(--gray-10);
+    --card-foreground:       var(--gray-01);
+    --popover:               var(--gray-10);
+    --popover-foreground:    var(--gray-01);
+    --primary:               var(--gray-01);
+    --primary-foreground:    var(--gray-09);
+    --secondary:             var(--gray-09);
+    --secondary-foreground:  var(--gray-01);
+    --muted:                 var(--gray-09);
+    --muted-foreground:      var(--gray-05);
+    --accent:                var(--gray-09);
+    --accent-foreground:     var(--gray-01);
+    --destructive:           var(--red-900);
+    --destructive-foreground: var(--gray-01);
+    --border:                var(--gray-09);
+    --input:                 var(--gray-09);
+    --ring:                  var(--gray-04);
   }
 }
 
