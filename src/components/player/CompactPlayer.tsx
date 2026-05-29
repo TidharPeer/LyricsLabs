@@ -57,7 +57,7 @@ export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate }
             if (autoPlay) event.target.playVideo()
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
-              const d = playerRef.current?.getDuration?.() ?? 0
+              const d = (playerRef.current as unknown as { getDuration?(): number })?.getDuration?.() ?? 0
               if (!seekingRef.current) {
                 setCurrentTime(t)
                 setDuration(d)
