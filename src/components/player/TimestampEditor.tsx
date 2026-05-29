@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { loadYTApi } from '@/lib/youtube'
-import { upsertSong } from '@/lib/storage'
+import { saveSongRemote } from '@/lib/db'
 import { lyricsDir } from '@/lib/rtl'
+import { useAuth } from '@/contexts/AuthContext'
 import type { Song, LyricLine } from '@/types'
 
 interface Props {
@@ -278,16 +279,25 @@ function ManualEditTab({ song, lines, setLines }: {
 export function TimestampEditor({ song }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [lines, setLines] = useState<LyricLine[]>(() =>
     song.lyrics.map((l) => ({ ...l }))
   )
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
-  function handleSave() {
+  async function handleSave() {
+    if (!user) return
     setSaving(true)
-    upsertSong({ ...song, lyrics: lines })
-    navigate(`/songs/${song.id}`)
+    setSaveError('')
+    try {
+      await saveSongRemote({ ...song, lyrics: lines }, user.id)
+      navigate(`/songs/${song.id}`)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+      setSaving(false)
+    }
   }
 
   return (
@@ -319,8 +329,9 @@ export function TimestampEditor({ song }: Props) {
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-end border-t pt-4">
-        <Button onClick={handleSave} disabled={saving}>
+      <div className="flex items-center justify-between border-t pt-4 gap-3">
+        {saveError && <p className="text-xs text-red-500 flex-1">{saveError}</p>}
+        <Button className="ml-auto" onClick={handleSave} disabled={saving}>
           {saving ? t('timestamp.saving') : t('timestamp.save')}
         </Button>
       </div>
