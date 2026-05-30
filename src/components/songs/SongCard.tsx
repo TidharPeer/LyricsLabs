@@ -33,7 +33,7 @@ export function SongCard({ song, onDelete, onEdit }: Props) {
               {onEdit && (
                 <button
                   onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit() }}
-                  className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-opacity"
+                  className="hidden group-hover:inline-flex shrink-0 items-center justify-center rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
                   title="Edit song"
                   aria-label="Edit song"
                 >
@@ -70,7 +70,7 @@ export function SongCard({ song, onDelete, onEdit }: Props) {
             {onDelete && (
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete() }}
-                className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                className="hidden group-hover:flex rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 title="Delete song"
                 aria-label="Delete song"
               >
