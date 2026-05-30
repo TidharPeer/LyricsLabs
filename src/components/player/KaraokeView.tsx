@@ -62,7 +62,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded }: Props) {
             }, 250)
           },
           onStateChange: (event: YT.OnStateChangeEvent) => {
-            if (event.data === window.YT.PlayerState.ENDED) {
+            if (event.data === 0 /* YT.PlayerState.ENDED */) {
               onEndedRef.current?.()
             }
           },
