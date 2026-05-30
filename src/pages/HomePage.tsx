@@ -127,27 +127,25 @@ export function HomePage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {view === 'all' ? t('auth.allSongs') : t('auth.mySongs')}
-            {!loading && (
-              <span className="ml-1.5 text-lg font-normal text-muted-foreground">
-                ({fmtCount(filteredSongs.length)})
-              </span>
-            )}
-          </h1>
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold">
+          {view === 'all' ? t('auth.allSongs') : t('auth.mySongs')}
+          {!loading && (
+            <span className="ml-1.5 text-lg font-normal text-muted-foreground">
+              ({fmtCount(filteredSongs.length)})
+            </span>
+          )}
+        </h1>
         {user && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" onClick={() => setBandDialogOpen(true)}>
               <Music2 className="h-4 w-4" />
-              Import Band
+              <span className="hidden sm:inline">Import Band</span>
             </Button>
             <Button variant="outline" asChild>
               <Link to="/songs/new">
                 <Plus className="h-4 w-4" />
-                Add via URL
+                <span className="hidden sm:inline">Add via URL</span>
               </Link>
             </Button>
             <Button onClick={() => setSearchDialogOpen(true)}>
