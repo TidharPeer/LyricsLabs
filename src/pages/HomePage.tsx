@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
+import { EditSongDialog } from '@/components/songs/EditSongDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
@@ -26,6 +27,7 @@ export function HomePage() {
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
+  const [editingSong, setEditingSong] = useState<Song | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
   const PAGE_SIZE = 20
@@ -61,6 +63,11 @@ export function HomePage() {
     setFilterLanguage('')
     setCurrentPage(1)
   }, [view, query])
+
+  function handleEditSaved(updated: Song) {
+    setSongs(prev => prev.map(s => s.id === updated.id ? updated : s))
+    setEditingSong(null)
+  }
 
   async function handleDelete(id: string) {
     if (!window.confirm('Delete this song?')) return
@@ -244,6 +251,7 @@ export function HomePage() {
                 key={song.id}
                 song={song}
                 onDelete={view === 'mine' ? () => handleDelete(song.id) : undefined}
+                onEdit={view === 'mine' ? () => setEditingSong(song) : undefined}
               />
             ))}
           </div>
@@ -283,6 +291,16 @@ export function HomePage() {
           existingSongs={songs}
           userId={user.id}
           onImportDone={load}
+        />
+      )}
+
+      {user && editingSong && (
+        <EditSongDialog
+          song={editingSong}
+          open={true}
+          onOpenChange={open => { if (!open) setEditingSong(null) }}
+          onSaved={handleEditSaved}
+          userId={user.id}
         />
       )}
     </div>
