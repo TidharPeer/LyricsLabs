@@ -75,7 +75,7 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<FetchedMeta
 
 // ─── LRC parsing ─────────────────────────────────────────────────────────────
 
-function parseLRC(lrc: string): LyricLine[] {
+export function parseLRC(lrc: string): LyricLine[] {
   return lrc
     .split('\n')
     .map((line): LyricLine | null => {
@@ -96,7 +96,7 @@ function parseLRC(lrc: string): LyricLine[] {
     .filter((l): l is LyricLine => l !== null && l.text.length > 0)
 }
 
-function parsePlain(plain: string): LyricLine[] {
+export function parsePlain(plain: string): LyricLine[] {
   return plain
     .split('\n')
     .map((l) => l.trim())

@@ -105,3 +105,22 @@ export async function getPlaylistVideos(
 
   return videos
 }
+
+export async function searchYouTubeVideo(artist: string, title: string): Promise<string | null> {
+  if (!API_KEY) return null
+  try {
+    const params = new URLSearchParams({
+      q: `${artist} ${title}`,
+      type: 'video',
+      part: 'snippet',
+      maxResults: '1',
+      key: API_KEY,
+    })
+    const res = await fetch(`${BASE}/search?${params}`)
+    if (!res.ok) return null
+    const data = await res.json() as { items?: Array<{ id: { videoId: string } }> }
+    return data.items?.[0]?.id?.videoId ?? null
+  } catch {
+    return null
+  }
+}
