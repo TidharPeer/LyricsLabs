@@ -91,29 +91,40 @@ export function SongFormPage() {
 
     debounceRef.current = setTimeout(async () => {
       lastFetchedId.current = videoId
-      setFetchStatus('loading')
-      setFetchedLyrics(null)
-      setLyricsImported(false)
 
-      const metadata = await fetchYouTubeMetadata(videoId)
-      if (!metadata) {
-        setFetchStatus('error')
-        return
+      const needsMeta = !title.trim() || !artist.trim()
+      const needsLyrics = !lyricsText.trim()
+
+      if (!needsMeta && !needsLyrics) return
+
+      if (needsMeta) {
+        setFetchStatus('loading')
+        setFetchedLyrics(null)
+        setLyricsImported(false)
+
+        const metadata = await fetchYouTubeMetadata(videoId)
+        if (!metadata) { setFetchStatus('error'); return }
+
+        const filled = new Set<string>()
+        if (!title.trim()) { setTitle(metadata.title); filled.add('title') }
+        if (!artist.trim()) { setArtist(metadata.artist); filled.add('artist') }
+        setLanguage(metadata.language)
+        filled.add('language')
+        setAutoFilledFields(filled)
+        setFetchStatus('ok')
+
+        if (needsLyrics) {
+          setLyricsLoading(true)
+          const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
+          setFetchedLyrics(lyrics)
+          setLyricsLoading(false)
+        }
+      } else if (needsLyrics) {
+        setLyricsLoading(true)
+        const lyrics = await fetchLyrics(artist, title)
+        setFetchedLyrics(lyrics)
+        setLyricsLoading(false)
       }
-
-      const filled = new Set<string>()
-      if (!title.trim()) { setTitle(metadata.title); filled.add('title') }
-      if (!artist.trim()) { setArtist(metadata.artist); filled.add('artist') }
-      setLanguage(metadata.language)
-      filled.add('language')
-
-      setAutoFilledFields(filled)
-      setFetchStatus('ok')
-
-      setLyricsLoading(true)
-      const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
-      setFetchedLyrics(lyrics)
-      setLyricsLoading(false)
     }, 700)
   }, [youtubeUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 

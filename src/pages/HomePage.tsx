@@ -19,7 +19,10 @@ export function HomePage() {
   const { t } = useTranslation()
   const { user } = useAuth()
 
-  const [view, setView] = useState<View>('all')
+  const [view, setView] = useState<View>(() => {
+    const saved = sessionStorage.getItem('homeView')
+    return saved === 'mine' ? 'mine' : 'all'
+  })
   const [query, setQuery] = useState('')
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
@@ -143,7 +146,7 @@ export function HomePage() {
       </div>
 
       {user && (
-        <Tabs value={view} onValueChange={(v) => { setView(v as View); setQuery('') }}>
+        <Tabs value={view} onValueChange={(v) => { setView(v as View); setQuery(''); sessionStorage.setItem('homeView', v) }}>
           <TabsList>
             <TabsTrigger value="all" className="gap-1.5">
               <Globe className="h-3.5 w-3.5" />
