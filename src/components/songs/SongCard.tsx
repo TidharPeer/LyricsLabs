@@ -3,15 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { Music2, ChevronRight, Trash2, CheckCircle2, FileText, MinusCircle, Play, Pencil } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AddToPlaylistButton } from './AddToPlaylistButton'
 import type { Song } from '@/types'
 
 interface Props {
   song: Song
   onDelete?: () => void
   onEdit?: () => void
+  userId?: string
 }
 
-export function SongCard({ song, onDelete, onEdit }: Props) {
+export function SongCard({ song, onDelete, onEdit, userId }: Props) {
   const { t } = useTranslation()
   const hasSynced = song.lyrics.some(l => l.timestamp !== undefined)
   const hasLyrics = song.lyrics.length > 0
@@ -65,6 +67,10 @@ export function SongCard({ song, onDelete, onEdit }: Props) {
               <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                 <MinusCircle className="h-3 w-3" /> No lyrics
               </span>
+            )}
+
+            {userId && (
+              <AddToPlaylistButton songId={song.id} userId={userId} />
             )}
 
             {onDelete && (

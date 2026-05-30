@@ -4,7 +4,7 @@
  */
 import { supabase } from './supabase'
 import { getGameSessions } from './storage'
-import type { Song, GameSession, UserStats } from '@/types'
+import type { Song, GameSession, UserStats, Playlist } from '@/types'
 
 // ─── Songs ────────────────────────────────────────────────────────────────────
 
@@ -206,6 +206,101 @@ export async function handleReferral(refCode: string, newUserId: string): Promis
       .update({ stars_awarded: true })
       .eq('referred_user_id', newUserId)
   }
+}
+
+// ─── Playlists ────────────────────────────────────────────────────────────────
+
+export async function fetchPlaylists(userId: string): Promise<Playlist[]> {
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*, playlist_songs(count)')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(row => ({
+    id: row.id as string,
+    name: row.name as string,
+    createdBy: row.created_by as string,
+    createdAt: new Date(row.created_at as string).getTime(),
+    songCount: (row.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+  }))
+}
+
+export async function createPlaylist(name: string, userId: string): Promise<Playlist> {
+  const { data, error } = await supabase
+    .from('playlists')
+    .insert({ name: name.trim(), created_by: userId })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    createdBy: data.created_by as string,
+    createdAt: new Date(data.created_at as string).getTime(),
+    songCount: 0,
+  }
+}
+
+export async function deletePlaylist(id: string): Promise<void> {
+  const { error } = await supabase.from('playlists').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function renamePlaylist(id: string, name: string): Promise<void> {
+  const { error } = await supabase.from('playlists').update({ name }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function fetchPlaylistSongs(playlistId: string): Promise<Song[]> {
+  const { data, error } = await supabase
+    .from('playlist_songs')
+    .select('songs(*)')
+    .eq('playlist_id', playlistId)
+    .order('added_at', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data ?? [])
+    .map((row: Record<string, unknown>) => row.songs)
+    .filter(Boolean)
+    .map(s => rowToSong(s as Record<string, unknown>))
+}
+
+export async function addSongToPlaylist(playlistId: string, songId: string): Promise<void> {
+  const { error } = await supabase
+    .from('playlist_songs')
+    .insert({ playlist_id: playlistId, song_id: songId })
+  // 23505 = unique_violation — song already in playlist, treat as success
+  if (error && error.code !== '23505') throw new Error(error.message)
+}
+
+export async function removeSongFromPlaylist(playlistId: string, songId: string): Promise<void> {
+  const { error } = await supabase
+    .from('playlist_songs')
+    .delete()
+    .eq('playlist_id', playlistId)
+    .eq('song_id', songId)
+  if (error) throw new Error(error.message)
+}
+
+export async function getSongPlaylistIds(songId: string, userId: string): Promise<string[]> {
+  const { data: playlists } = await supabase
+    .from('playlists')
+    .select('id')
+    .eq('created_by', userId)
+
+  if (!playlists?.length) return []
+
+  const { data, error } = await supabase
+    .from('playlist_songs')
+    .select('playlist_id')
+    .eq('song_id', songId)
+    .in('playlist_id', playlists.map(p => p.id))
+
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(row => row.playlist_id as string)
 }
 
 // ─── Row mappers ──────────────────────────────────────────────────────────────

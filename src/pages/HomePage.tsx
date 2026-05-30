@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight, ListMusic } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -9,17 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
+import { PlaylistsView } from '@/components/songs/PlaylistsView'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
 
-type View = 'all' | 'mine'
+type MainTab = 'songs' | 'playlists'
+type SongsView = 'all' | 'mine'
 
 export function HomePage() {
   const { t } = useTranslation()
   const { user } = useAuth()
 
-  const [view, setView] = useState<View>(() => {
+  const [mainTab, setMainTab] = useState<MainTab>(() => {
+    const saved = sessionStorage.getItem('homeMainTab')
+    return saved === 'playlists' ? 'playlists' : 'songs'
+  })
+
+  const [view, setView] = useState<SongsView>(() => {
     const saved = sessionStorage.getItem('homeView')
     return saved === 'mine' ? 'mine' : 'all'
   })
@@ -56,11 +63,11 @@ export function HomePage() {
   }, [view, query, user])
 
   useEffect(() => {
+    if (mainTab !== 'songs') return
     const timer = setTimeout(load, query ? 400 : 0)
     return () => clearTimeout(timer)
-  }, [load, query])
+  }, [load, query, mainTab])
 
-  // Reset filters and page when view or query changes
   useEffect(() => {
     setFilterArtist('')
     setFilterLanguage('')
@@ -117,11 +124,55 @@ export function HomePage() {
 
   const hasActiveFilters = filterArtist || filterLanguage
 
-  // Reset to page 1 when active filters change
   useEffect(() => { setCurrentPage(1) }, [filterArtist, filterLanguage])
 
+  function switchMainTab(tab: MainTab) {
+    setMainTab(tab)
+    sessionStorage.setItem('homeMainTab', tab)
+  }
+
+  // ── Playlists tab ────────────────────────────────────────────────────────────
+  if (mainTab === 'playlists' && user) {
+    return (
+      <div className="space-y-5">
+        {/* Top-level tab bar */}
+        <Tabs value={mainTab} onValueChange={v => switchMainTab(v as MainTab)}>
+          <TabsList>
+            <TabsTrigger value="songs" className="gap-1.5">
+              <Music2 className="h-3.5 w-3.5" />
+              {t('playlist.songs')}
+            </TabsTrigger>
+            <TabsTrigger value="playlists" className="gap-1.5">
+              <ListMusic className="h-3.5 w-3.5" />
+              {t('playlist.playlists')}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <PlaylistsView userId={user.id} />
+      </div>
+    )
+  }
+
+  // ── Songs tab ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
+      {/* Top-level tab bar — only shown when logged in */}
+      {user && (
+        <Tabs value={mainTab} onValueChange={v => switchMainTab(v as MainTab)}>
+          <TabsList>
+            <TabsTrigger value="songs" className="gap-1.5">
+              <Music2 className="h-3.5 w-3.5" />
+              {t('playlist.songs')}
+            </TabsTrigger>
+            <TabsTrigger value="playlists" className="gap-1.5">
+              <ListMusic className="h-3.5 w-3.5" />
+              {t('playlist.playlists')}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('home.title')}</h1>
@@ -145,8 +196,9 @@ export function HomePage() {
         )}
       </div>
 
+      {/* All Songs / My Songs sub-tabs */}
       {user && (
-        <Tabs value={view} onValueChange={(v) => { setView(v as View); setQuery(''); sessionStorage.setItem('homeView', v) }}>
+        <Tabs value={view} onValueChange={(v) => { setView(v as SongsView); setQuery(''); sessionStorage.setItem('homeView', v) }}>
           <TabsList>
             <TabsTrigger value="all" className="gap-1.5">
               <Globe className="h-3.5 w-3.5" />
@@ -170,7 +222,7 @@ export function HomePage() {
         />
       </div>
 
-      {/* Filters — only show when songs are loaded and there's variety to filter */}
+      {/* Filters */}
       {!loading && songs.length > 1 && !query && (
         <div className="flex flex-wrap items-center gap-2">
           {uniqueArtists.length > 1 && (
@@ -253,6 +305,7 @@ export function HomePage() {
               <SongCard
                 key={song.id}
                 song={song}
+                userId={user?.id}
                 onDelete={view === 'mine' ? () => handleDelete(song.id) : undefined}
                 onEdit={view === 'mine' ? () => setEditingSong(song) : undefined}
               />

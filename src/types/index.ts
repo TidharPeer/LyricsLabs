@@ -35,6 +35,14 @@ export interface UserStats {
   lastActiveDate: string | null // 'YYYY-MM-DD'
 }
 
+export interface Playlist {
+  id: string
+  name: string
+  createdBy: string
+  createdAt: number
+  songCount?: number
+}
+
 export function scoreToStars(score: number): number {
   if (score >= 91) return 5
   if (score >= 81) return 4
