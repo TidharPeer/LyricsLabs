@@ -25,26 +25,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 to="/"
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
                   location.pathname === '/'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Music2 className="h-3.5 w-3.5" />
-                {t('playlist.songs')}
+                <Music2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">{t('playlist.songs')}</span>
               </Link>
               <Link
                 to="/playlists"
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
                   location.pathname === '/playlists'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <ListMusic className="h-3.5 w-3.5" />
-                {t('playlist.playlists')}
+                <ListMusic className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">{t('playlist.playlists')}</span>
               </Link>
             </nav>
           )}
