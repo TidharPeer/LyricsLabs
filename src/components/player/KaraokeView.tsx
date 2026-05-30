@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { loadYTApi } from '@/lib/youtube'
+import { Button } from '@/components/ui/button'
 import { lyricsDir } from '@/lib/rtl'
 import { addStars } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
@@ -80,9 +82,16 @@ export function KaraokeView({ song, userId, onStarEarned }: Props) {
 
       <div className="rounded-lg border bg-card p-4 overflow-y-auto max-h-[56vw] lg:max-h-none lg:h-[360px]">
         {!hasTimestamps ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            {t('songDetail.noTimestamps')}
-          </p>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <p className="text-sm text-muted-foreground text-center">
+              {t('songDetail.noTimestamps')}
+            </p>
+            {userId && (!song.createdBy || userId === song.createdBy) && (
+              <Button asChild variant="outline">
+                <Link to={`/songs/${song.id}/timestamps`}>Add Timestamps</Link>
+              </Button>
+            )}
+          </div>
         ) : !playerReady ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             {t('common.loading')}

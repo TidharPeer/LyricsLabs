@@ -93,7 +93,14 @@ export function SongDetailPage() {
         <TabsContent value="lyrics" className="mt-4">
           <div className="rounded-lg border p-4 space-y-0.5 max-h-[500px] overflow-y-auto" dir={lyricsDir(song.language)}>
             {song.lyrics.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-8">{t('song.noLyrics')}</p>
+              <div className="flex flex-col items-center gap-4 py-8">
+                <p className="text-muted-foreground text-sm">{t('song.noLyrics')}</p>
+                {user && (!song.createdBy || user.id === song.createdBy) && (
+                  <Button asChild>
+                    <Link to={`/songs/${song.id}/edit`}>Add Lyrics</Link>
+                  </Button>
+                )}
+              </div>
             ) : (
               song.lyrics.map((line, i) => (
                 <div key={line.id} className="group flex items-baseline gap-3 py-0.5">
