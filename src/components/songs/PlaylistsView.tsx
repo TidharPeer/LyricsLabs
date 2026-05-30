@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, ListMusic, Trash2, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, ListMusic, Trash2, Loader2, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ interface Props {
 
 export function PlaylistsView({ userId }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -110,6 +112,16 @@ export function PlaylistsView({ userId }: Props) {
                   <Badge variant="outline" className="hidden sm:flex text-xs">
                     {t('playlist.songCount', { count: pl.songCount ?? 0 })}
                   </Badge>
+                  {(pl.songCount ?? 0) > 0 && (
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={e => { e.stopPropagation(); navigate(`/playlists/${pl.id}/play`) }}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Play
+                    </Button>
+                  )}
                   <button
                     onClick={e => {
                       e.stopPropagation()

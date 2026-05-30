@@ -10,6 +10,7 @@ import { TimestampPage } from '@/pages/TimestampPage'
 import { GamePage } from '@/pages/GamePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
+import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/playlists" element={<PlaylistsPage />} />
+                <Route path="/playlists/:id/play" element={<PlaylistPlayerPage />} />
                 <Route path="/songs/new" element={<SongFormPage />} />
                 <Route path="/songs/:id" element={<SongDetailPage />} />
                 <Route path="/songs/:id/edit" element={<SongFormPage />} />

@@ -13,9 +13,10 @@ interface Props {
   song: Song
   userId?: string
   onStarEarned?: () => void
+  onEnded?: () => void
 }
 
-export function KaraokeView({ song, userId, onStarEarned }: Props) {
+export function KaraokeView({ song, userId, onStarEarned, onEnded }: Props) {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
   const [playerReady, setPlayerReady] = useState(false)
@@ -24,6 +25,9 @@ export function KaraokeView({ song, userId, onStarEarned }: Props) {
   const activeRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const karaokeStarGiven = useRef(false)
+  // Always call latest onEnded without re-creating the YT player
+  const onEndedRef = useRef(onEnded)
+  useEffect(() => { onEndedRef.current = onEnded }, [onEnded])
 
   const hasTimestamps = song.lyrics.some((l) => l.timestamp !== undefined)
   const activeLine = findActiveLine(song.lyrics, currentTime)
@@ -56,6 +60,11 @@ export function KaraokeView({ song, userId, onStarEarned }: Props) {
                 addStars(userId, 1).then(() => onStarEarned?.()).catch(() => {})
               }
             }, 250)
+          },
+          onStateChange: (event: YT.OnStateChangeEvent) => {
+            if (event.data === window.YT.PlayerState.ENDED) {
+              onEndedRef.current?.()
+            }
           },
         },
       })

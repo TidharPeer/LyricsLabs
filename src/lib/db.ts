@@ -210,6 +210,23 @@ export async function handleReferral(refCode: string, newUserId: string): Promis
 
 // ─── Playlists ────────────────────────────────────────────────────────────────
 
+export async function fetchPlaylist(id: string): Promise<Playlist | null> {
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*, playlist_songs(count)')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) return null
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    createdBy: data.created_by as string,
+    createdAt: new Date(data.created_at as string).getTime(),
+    songCount: (data.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+  }
+}
+
 export async function fetchPlaylists(userId: string): Promise<Playlist[]> {
   const { data, error } = await supabase
     .from('playlists')

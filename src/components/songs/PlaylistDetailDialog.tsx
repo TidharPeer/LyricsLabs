@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, Trash2, X, Plus, Loader2, Music2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Trash2, X, Plus, Loader2, Music2, Play } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -20,6 +21,7 @@ interface Props {
 
 export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, onSongCountChange }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
@@ -82,20 +84,32 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
         <DialogHeader className="px-5 pt-5 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="truncate pr-4">{playlist.name}</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-              onClick={() => {
-                if (window.confirm(t('playlist.deleteConfirm'))) {
-                  onDelete(playlist.id)
-                  onOpenChange(false)
-                }
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              {t('playlist.deletePlaylist')}
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              {songs.length > 0 && (
+                <Button
+                  size="sm"
+                  className="gap-1.5 h-8 text-xs"
+                  onClick={() => { onOpenChange(false); navigate(`/playlists/${playlist.id}/play`) }}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Play
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  if (window.confirm(t('playlist.deleteConfirm'))) {
+                    onDelete(playlist.id)
+                    onOpenChange(false)
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {t('playlist.deletePlaylist')}
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {t('playlist.songCount', { count: songs.length })}
