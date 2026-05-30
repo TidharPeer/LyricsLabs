@@ -118,14 +118,23 @@ export function HomePage() {
 
   useEffect(() => { setCurrentPage(1) }, [filterArtist, filterLanguage])
 
+  function fmtCount(n: number) {
+    if (n >= 1000) return `${Math.round(n / 100) / 10}k`
+    return String(n)
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('home.title')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {loading ? '…' : t('home.songCount', { count: filteredSongs.length })}{!loading && totalPages > 1 ? ` · page ${currentPage}/${totalPages}` : ''}
-          </p>
+          <h1 className="text-2xl font-bold">
+            {view === 'all' ? t('auth.allSongs') : t('auth.mySongs')}
+            {!loading && (
+              <span className="ml-1.5 text-lg font-normal text-muted-foreground">
+                ({fmtCount(filteredSongs.length)})
+              </span>
+            )}
+          </h1>
         </div>
         {user && (
           <div className="flex gap-2">
