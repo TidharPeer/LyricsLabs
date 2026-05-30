@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Music2, CheckCircle2, FileText, Clock } from 'lucide-react'
+import { Loader2, Music2, CheckCircle2, FileText, Clock, MinusCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { parseLRC, parsePlain } from '@/lib/fetchSongData'
 import { saveSongRemote } from '@/lib/db'
 import { searchYouTubeVideo } from '@/lib/youtubeDataApi'
 import type { Song } from '@/types'
 
-// ─── lrclib types ──────────────────────────────────────────────────────────────
+// ─── types ─────────────────────────────────────────────────────────────────────
 
 interface LrclibTrack {
   id: number
@@ -26,6 +33,8 @@ interface LrclibTrack {
   syncedLyrics: string | null
   plainLyrics: string | null
 }
+
+type FilterMode = 'synced' | 'plain' | 'all'
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,9 +55,31 @@ async function searchLrclibArtist(artist: string): Promise<LrclibTrack[]> {
   })
   if (!res.ok) throw new Error(`lrclib search failed: ${res.status}`)
   const all = await res.json() as LrclibTrack[]
-  // Filter to tracks whose artist name matches the query (lrclib q= searches all fields)
   const q = artist.toLowerCase()
   return all.filter(t => t.artistName.toLowerCase().includes(q) || q.includes(t.artistName.toLowerCase()))
+}
+
+// ─── lyrics badge ──────────────────────────────────────────────────────────────
+
+function LyricsBadge({ track }: { track: LrclibTrack }) {
+  if (track.syncedLyrics) return (
+    <Badge
+      variant="outline"
+      className="shrink-0 gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400"
+    >
+      <CheckCircle2 className="h-3 w-3" /> Synced
+    </Badge>
+  )
+  if (track.plainLyrics) return (
+    <Badge variant="outline" className="shrink-0 gap-1 text-xs">
+      <FileText className="h-3 w-3" /> Plain
+    </Badge>
+  )
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+      <MinusCircle className="h-3 w-3" /> No lyrics
+    </span>
+  )
 }
 
 // ─── component ─────────────────────────────────────────────────────────────────
@@ -65,14 +96,13 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
   const [artistQuery, setArtistQuery] = useState('')
   const [tracks, setTracks] = useState<LrclibTrack[]>([])
   const [checked, setChecked] = useState<Set<number>>(new Set())
-  const [showAll, setShowAll] = useState(false)
+  const [filterMode, setFilterMode] = useState<FilterMode>('synced')
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
   const [importDone, setImportDone] = useState<number | null>(null)
 
-  // Build dedup set from existing songs (by title+artist)
   const existingKeys = new Set(existingSongs.map(s => trackKey(s.artist, s.title)))
 
   function resetAndClose() {
@@ -81,7 +111,7 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
       setArtistQuery('')
       setTracks([])
       setChecked(new Set())
-      setShowAll(false)
+      setFilterMode('synced')
       setSearchError(null)
       setImporting(false)
       setImportProgress(null)
@@ -97,10 +127,9 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
     setSearchError(null)
     setTracks([])
     setChecked(new Set())
-    setShowAll(false)
+    setFilterMode('synced')
     try {
       const results = await searchLrclibArtist(artistQuery.trim())
-      // Filter out already-saved songs
       const fresh = results.filter(t => !existingKeys.has(trackKey(t.artistName, t.trackName)))
       setTracks(fresh)
       if (fresh.length === 0) setSearchError('No new songs found — all results are already in your library.')
@@ -123,7 +152,7 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
 
   function toggleAll() {
     const visible = filteredTracks.map(t => t.id)
-    const allSelected = visible.every(id => checked.has(id))
+    const allSelected = visible.length > 0 && visible.every(id => checked.has(id))
     setChecked(prev => {
       const next = new Set(prev)
       if (allSelected) {
@@ -135,13 +164,28 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
     })
   }
 
-  // ── Derived display list ────────────────────────────────────────────────────
+  // ── Derived display ─────────────────────────────────────────────────────────
 
-  const syncedTracks = tracks.filter(t => t.syncedLyrics)
-  const filteredTracks = showAll ? tracks : syncedTracks
+  const filteredTracks =
+    filterMode === 'synced' ? tracks.filter(t => !!t.syncedLyrics) :
+    filterMode === 'plain'  ? tracks.filter(t => !!t.plainLyrics && !t.syncedLyrics) :
+    tracks
 
   const allVisibleSelected = filteredTracks.length > 0 && filteredTracks.every(t => checked.has(t.id))
   const selectedCount = checked.size
+
+  function statsText(): string {
+    if (filterMode === 'synced') return `${filteredTracks.length} synced song${filteredTracks.length === 1 ? '' : 's'}`
+    if (filterMode === 'plain') return `${filteredTracks.length} plain-lyrics song${filteredTracks.length === 1 ? '' : 's'}`
+    const synced = tracks.filter(t => !!t.syncedLyrics).length
+    const plain = tracks.filter(t => !!t.plainLyrics && !t.syncedLyrics).length
+    const none = tracks.length - synced - plain
+    const parts = [`${tracks.length} song${tracks.length === 1 ? '' : 's'}`]
+    if (synced) parts.push(`${synced} synced`)
+    if (plain) parts.push(`${plain} plain`)
+    if (none) parts.push(`${none} no lyrics`)
+    return parts.join(' · ')
+  }
 
   // ── Import ──────────────────────────────────────────────────────────────────
 
@@ -161,7 +205,6 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
             ? parsePlain(track.plainLyrics)
             : []
 
-        // Try to find a YouTube video for the song (optional)
         const videoId = await searchYouTubeVideo(track.artistName, track.trackName)
 
         await saveSongRemote(
@@ -200,15 +243,14 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
           </DialogTitle>
           <DialogDescription>
             {importing
-              ? `Saving to your library…`
-              : 'Search an artist on lrclib.net and choose songs with synced lyrics to import.'}
+              ? 'Saving to your library…'
+              : 'Search an artist on lrclib.net and choose songs to import.'}
           </DialogDescription>
         </DialogHeader>
 
         {/* ── Search + results ── */}
         {!importing && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-            {/* Search bar */}
             <div className="flex gap-2">
               <Input
                 placeholder="Artist or band name…"
@@ -225,40 +267,36 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
 
             {searchError && <p className="text-sm text-destructive">{searchError}</p>}
 
-            {/* Results */}
-            {filteredTracks.length > 0 && (
+            {tracks.length > 0 && (
               <>
-                {/* Stats + filter toggle */}
-                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>
-                    {showAll
-                      ? `${tracks.length} songs found`
-                      : `${syncedTracks.length} synced songs found`}
-                    {showAll && tracks.length !== syncedTracks.length && (
-                      <> · {syncedTracks.length} synced</>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="underline underline-offset-2 hover:text-foreground transition-colors"
-                      onClick={() => setShowAll(v => !v)}
-                    >
-                      {showAll ? 'Synced only' : 'Show all'}
-                    </button>
-                    <button
-                      className="underline underline-offset-2 hover:text-foreground transition-colors"
-                      onClick={toggleAll}
-                    >
-                      {allVisibleSelected ? 'Deselect all' : 'Select all'}
-                    </button>
-                  </div>
+                {/* Stats + filter dropdown + select-all */}
+                <div className="flex items-center gap-3">
+                  <span className="flex-1 text-xs text-muted-foreground">{statsText()}</span>
+                  <Select value={filterMode} onValueChange={v => { setFilterMode(v as FilterMode); setChecked(new Set()) }}>
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="synced">Synced lyrics</SelectItem>
+                      <SelectItem value="plain">Plain lyrics</SelectItem>
+                      <SelectItem value="all">All songs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors whitespace-nowrap"
+                    onClick={toggleAll}
+                  >
+                    {allVisibleSelected ? 'Deselect all' : 'Select all'}
+                  </button>
                 </div>
 
-                {/* Song list */}
-                <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-                  {filteredTracks.map(track => {
-                    const isSynced = !!track.syncedLyrics
-                    return (
+                {filteredTracks.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No songs match this filter.
+                  </p>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+                    {filteredTracks.map(track => (
                       <label
                         key={track.id}
                         className="flex cursor-pointer select-none items-center gap-3 rounded-lg border p-2.5 hover:bg-muted/40"
@@ -279,28 +317,14 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
                             {formatDuration(track.duration)}
                           </span>
                         )}
-                        {isSynced ? (
-                          <Badge
-                            variant="outline"
-                            className="shrink-0 gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> Synced
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="shrink-0 gap-1 text-xs">
-                            <FileText className="h-3 w-3" /> Plain
-                          </Badge>
-                        )}
+                        <LyricsBadge track={track} />
                       </label>
-                    )
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
 
-                {/* Footer */}
                 <div className="flex items-center justify-between border-t pt-3">
-                  <span className="text-sm text-muted-foreground">
-                    {selectedCount} selected
-                  </span>
+                  <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
                   <Button onClick={handleImport} disabled={selectedCount === 0}>
                     Import {selectedCount > 0 ? selectedCount : ''} song{selectedCount === 1 ? '' : 's'}
                   </Button>
