@@ -69,3 +69,10 @@ create policy "playlist_songs_delete_own" on public.playlist_songs
         and playlists.created_by = auth.uid()
     )
   );
+
+-- ─── Grants ───────────────────────────────────────────────────────────────────
+-- Required so the authenticated role can actually reach the tables.
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.playlists to authenticated;
+grant select, insert, update, delete on public.playlist_songs to authenticated;
