@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Loader2, CheckCircle2, AlertCircle, Sparkles, Music } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ export function SongFormPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const isEdit = !!id && id !== 'new'
 
   const [existing, setExisting] = useState<Song | undefined>(undefined)
@@ -48,7 +49,7 @@ export function SongFormPage() {
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
   const [language, setLanguage] = useState('en')
-  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [youtubeUrl, setYoutubeUrl] = useState(() => searchParams.get('url') ?? '')
   const [lyricsText, setLyricsText] = useState('')
   const [urlError, setUrlError] = useState('')
   const [saveError, setSaveError] = useState('')

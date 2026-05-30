@@ -133,6 +133,33 @@ export async function searchArtistVideos(artist: string, maxResults = 25): Promi
     }))
 }
 
+export async function searchVideos(query: string, maxResults = 10): Promise<YTVideo[]> {
+  if (!API_KEY) throw new Error('VITE_YOUTUBE_API_KEY is not set in .env.local')
+  const params = new URLSearchParams({
+    q: query,
+    type: 'video',
+    part: 'snippet',
+    maxResults: String(maxResults),
+    key: API_KEY,
+  })
+  const res = await fetch(`${BASE}/search?${params}`)
+  if (!res.ok) throw new Error(`YouTube search failed: ${res.status}`)
+  const data = await res.json() as {
+    items?: Array<{
+      id: { videoId: string }
+      snippet: { title: string; channelTitle: string; thumbnails: { default?: { url: string } } }
+    }>
+  }
+  return (data.items ?? [])
+    .filter(item => !!item.id.videoId)
+    .map(item => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      channelTitle: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails.default?.url ?? '',
+    }))
+}
+
 export async function searchYouTubeVideo(artist: string, title: string): Promise<string | null> {
   if (!API_KEY) return null
   try {

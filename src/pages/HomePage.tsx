@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
+import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
@@ -30,6 +31,7 @@ export function HomePage() {
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [editingSong, setEditingSong] = useState<Song | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -142,11 +144,15 @@ export function HomePage() {
               <Music2 className="h-4 w-4" />
               Import Band
             </Button>
-            <Button asChild>
+            <Button variant="outline" asChild>
               <Link to="/songs/new">
                 <Plus className="h-4 w-4" />
-                {t('nav.addSong')}
+                Add via URL
               </Link>
+            </Button>
+            <Button onClick={() => setSearchDialogOpen(true)}>
+              <Search className="h-4 w-4" />
+              {t('nav.addSong')}
             </Button>
           </div>
         )}
@@ -304,6 +310,13 @@ export function HomePage() {
           existingSongs={songs}
           userId={user.id}
           onImportDone={load}
+        />
+      )}
+
+      {user && (
+        <YouTubeSearchDialog
+          open={searchDialogOpen}
+          onOpenChange={setSearchDialogOpen}
         />
       )}
 
