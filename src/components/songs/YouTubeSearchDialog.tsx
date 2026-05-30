@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Loader2, Youtube } from 'lucide-react'
+import { Search, Loader2, Music } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -122,7 +122,7 @@ export function YouTubeSearchDialog({ open, onOpenChange }: Props) {
                   <img src={video.thumbnail} alt="" className="h-14 w-20 rounded object-cover shrink-0" />
                 ) : (
                   <div className="h-14 w-20 rounded bg-muted shrink-0 flex items-center justify-center">
-                    <Youtube className="h-5 w-5 text-muted-foreground" />
+                    <Music className="h-5 w-5 text-muted-foreground" />
                   </div>
                 )}
                 <div className="min-w-0">
