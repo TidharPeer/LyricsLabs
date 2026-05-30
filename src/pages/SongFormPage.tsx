@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { extractYouTubeId } from '@/lib/storage'
-import { fetchSong, saveSongRemote, deleteSongRemote } from '@/lib/db'
+import { fetchSong, saveSongRemote, deleteSongRemote, addStars } from '@/lib/db'
 import { fetchYouTubeMetadata, fetchLyrics, type FetchedLyrics } from '@/lib/fetchSongData'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Song, LyricLine } from '@/types'
@@ -157,6 +157,7 @@ export function SongFormPage() {
 
     try {
       const saved = await saveSongRemote(song, user.id)
+      if (!isEdit) addStars(user.id, 1).catch(() => {})
       navigate(`/songs/${saved.id}`)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save')

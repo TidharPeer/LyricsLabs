@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, CheckCircle2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { loadYTApi } from '@/lib/youtube'
-import { saveSongRemote } from '@/lib/db'
+import { saveSongRemote, addStars } from '@/lib/db'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Song, LyricLine } from '@/types'
@@ -54,6 +54,20 @@ function useYTPlayer(songId: string, youtubeId: string) {
   return { playerRef, containerRef, ready }
 }
 
+// ─── Video placeholder ────────────────────────────────────────────────────────
+
+function VideoSlot({ song, containerRef }: { song: Song; containerRef: React.RefObject<HTMLDivElement | null> }) {
+  const { t } = useTranslation()
+  if (song.youtubeId) {
+    return <div ref={containerRef} className="aspect-video w-full overflow-hidden rounded-lg bg-black" />
+  }
+  return (
+    <div className="aspect-video w-full flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      {t('timestamp.noVideo')}
+    </div>
+  )
+}
+
 // ─── Live Sync Tab ────────────────────────────────────────────────────────────
 
 function LiveSyncTab({ song, lines, setLines }: {
@@ -65,7 +79,6 @@ function LiveSyncTab({ song, lines, setLines }: {
   const { playerRef, containerRef, ready } = useYTPlayer(song.id, song.youtubeId)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Which line to stamp next: first without a timestamp
   const nextIndex = lines.findIndex((l) => l.timestamp === undefined)
   const allDone = nextIndex === -1
   const stampedCount = lines.filter((l) => l.timestamp !== undefined).length
@@ -80,23 +93,18 @@ function LiveSyncTab({ song, lines, setLines }: {
   }
 
   function undo() {
-    // Find last stamped line
     let lastStamped = -1
     for (let i = lines.length - 1; i >= 0; i--) {
       if (lines[i].timestamp !== undefined) { lastStamped = i; break }
     }
     if (lastStamped === -1) return
-
-    // Seek back to 2 seconds before that stamp so user can retry
     const seekTarget = Math.max(0, (lines[lastStamped].timestamp ?? 0) - 2)
     try { playerRef.current?.seekTo(seekTarget, true) } catch { /* ignore */ }
-
     setLines((prev) =>
       prev.map((l, i) => (i === lastStamped ? { ...l, timestamp: undefined } : l))
     )
   }
 
-  // Auto-scroll current line into view
   useEffect(() => {
     const el = listRef.current?.querySelector('[data-current="true"]')
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -105,93 +113,65 @@ function LiveSyncTab({ song, lines, setLines }: {
   const dir = lyricsDir(song.language)
 
   return (
-    <div className="space-y-4">
-      {song.youtubeId ? (
-        <div ref={containerRef} className="aspect-video w-full overflow-hidden rounded-lg bg-black" />
-      ) : (
-        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          {t('timestamp.noVideo')}
+    <div className="grid gap-4 lg:grid-cols-2 items-start">
+      {/* Left: video */}
+      <VideoSlot song={song} containerRef={containerRef} />
+
+      {/* Right: progress + lyrics + controls */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {allDone
+              ? t('timestamp.allStamped')
+              : t('timestamp.lineProgress', { stamped: stampedCount, total: lines.length })}
+          </p>
+          {allDone && <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />{t('timestamp.allStamped')}</Badge>}
         </div>
-      )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {allDone
-            ? t('timestamp.allStamped')
-            : t('timestamp.lineProgress', { stamped: stampedCount, total: lines.length })}
-        </p>
-        {allDone && <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />{t('timestamp.allStamped')}</Badge>}
-      </div>
-
-      {/* Scrollable line list */}
-      <div
-        ref={listRef}
-        dir={dir}
-        className="rounded-lg border divide-y max-h-64 overflow-y-auto"
-      >
-        {lines.map((line, i) => {
-          const isNext = i === nextIndex
-          const isDone = line.timestamp !== undefined
-          const isUpcoming = !isDone && !isNext
-
-          return (
-            <div
-              key={line.id}
-              data-current={isNext ? 'true' : undefined}
-              className={`flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
-                isNext
-                  ? 'bg-primary/10 font-semibold'
-                  : isDone
-                  ? 'opacity-50'
-                  : isUpcoming
-                  ? 'text-muted-foreground'
+        <div
+          ref={listRef}
+          dir={dir}
+          className="rounded-lg border divide-y max-h-56 lg:max-h-80 overflow-y-auto"
+        >
+          {lines.map((line, i) => {
+            const isNext = i === nextIndex
+            const isDone = line.timestamp !== undefined
+            const isUpcoming = !isDone && !isNext
+            return (
+              <div
+                key={line.id}
+                data-current={isNext ? 'true' : undefined}
+                className={`flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                  isNext ? 'bg-primary/10 font-semibold'
+                  : isDone ? 'opacity-50'
+                  : isUpcoming ? 'text-muted-foreground'
                   : ''
-              }`}
-            >
-              {isNext && (
-                <span className="shrink-0 text-primary text-base leading-none">›</span>
-              )}
-              {isDone && (
-                <span className="shrink-0 text-xs font-mono text-muted-foreground w-10">
-                  {formatTime(line.timestamp!)}
-                </span>
-              )}
-              {!isDone && !isNext && (
-                <span className="shrink-0 w-10 text-xs text-muted-foreground text-center">—</span>
-              )}
-              <span className="flex-1 truncate">{line.text}</span>
-            </div>
-          )
-        })}
+                }`}
+              >
+                {isNext && <span className="shrink-0 text-primary text-base leading-none">›</span>}
+                {isDone && <span className="shrink-0 text-xs font-mono text-muted-foreground w-10">{formatTime(line.timestamp!)}</span>}
+                {!isDone && !isNext && <span className="shrink-0 w-10 text-xs text-muted-foreground text-center">—</span>}
+                <span className="flex-1 truncate">{line.text}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" onClick={undo} disabled={stampedCount === 0} className="gap-2">
+            <Trash2 className="h-4 w-4" />
+            {t('timestamp.undoLast')}
+          </Button>
+          <Button size="lg" className="flex-1 gap-2 text-base" onClick={stamp} disabled={!ready || allDone}>
+            <Plus className="h-5 w-5" />
+            {allDone ? t('timestamp.allStamped') : t('timestamp.stampNextLine')}
+          </Button>
+        </div>
+
+        {!ready && song.youtubeId && (
+          <p className="text-xs text-center text-muted-foreground">{t('common.loading')}</p>
+        )}
       </div>
-
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={undo}
-          disabled={stampedCount === 0}
-          className="gap-2"
-        >
-          <Trash2 className="h-4 w-4" />
-          {t('timestamp.undoLast')}
-        </Button>
-
-        <Button
-          size="lg"
-          className="flex-1 gap-2 text-base"
-          onClick={stamp}
-          disabled={!ready || allDone}
-        >
-          <Plus className="h-5 w-5" />
-          {allDone ? t('timestamp.allStamped') : t('timestamp.stampNextLine')}
-        </Button>
-      </div>
-
-      {!ready && song.youtubeId && (
-        <p className="text-xs text-center text-muted-foreground">{t('common.loading')}</p>
-      )}
     </div>
   )
 }
@@ -230,16 +210,12 @@ function ManualEditTab({ song, lines, setLines }: {
   }
 
   return (
-    <div className="space-y-4">
-      {song.youtubeId ? (
-        <div ref={containerRef} className="aspect-video w-full overflow-hidden rounded-lg bg-black" />
-      ) : (
-        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          {t('timestamp.noVideo')}
-        </div>
-      )}
+    <div className="grid gap-4 lg:grid-cols-2 items-start">
+      {/* Left: video */}
+      <VideoSlot song={song} containerRef={containerRef} />
 
-      <div className="space-y-1 rounded-lg border divide-y" dir={dir}>
+      {/* Right: lyrics list */}
+      <div className="space-y-1 rounded-lg border divide-y max-h-[360px] overflow-y-auto" dir={dir}>
         {lines.map((line, i) => (
           <div key={line.id} className="flex items-center gap-2 p-2">
             <span className="text-xs text-muted-foreground w-6 shrink-0 text-center">{i + 1}</span>
@@ -287,12 +263,23 @@ export function TimestampEditor({ song }: Props) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
+  const originalSyncedCount = song.lyrics.filter(l => l.timestamp !== undefined).length
+
+  function clearAllTimestamps() {
+    if (!window.confirm('Remove all timestamps and start from scratch?')) return
+    setLines(prev => prev.map(l => ({ ...l, timestamp: undefined })))
+  }
+
   async function handleSave() {
     if (!user) return
     setSaving(true)
     setSaveError('')
     try {
       await saveSongRemote({ ...song, lyrics: lines }, user.id)
+      const newSyncedCount = lines.filter(l => l.timestamp !== undefined).length
+      if (newSyncedCount > originalSyncedCount) {
+        addStars(user.id, 5).catch(() => {})
+      }
       navigate(`/songs/${song.id}`)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save')
@@ -301,7 +288,7 @@ export function TimestampEditor({ song }: Props) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -330,8 +317,20 @@ export function TimestampEditor({ song }: Props) {
       </Tabs>
 
       <div className="flex items-center justify-between border-t pt-4 gap-3">
-        {saveError && <p className="text-xs text-red-500 flex-1">{saveError}</p>}
-        <Button className="ml-auto" onClick={handleSave} disabled={saving}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-muted-foreground hover:text-destructive"
+          onClick={clearAllTimestamps}
+          disabled={lines.every(l => l.timestamp === undefined)}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Clear all timestamps
+        </Button>
+
+        {saveError && <p className="text-xs text-red-500 flex-1 text-center">{saveError}</p>}
+
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? t('timestamp.saving') : t('timestamp.save')}
         </Button>
       </div>

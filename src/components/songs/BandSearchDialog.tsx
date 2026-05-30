@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { parseLRC, parsePlain } from '@/lib/fetchSongData'
-import { saveSongRemote } from '@/lib/db'
+import { saveSongRemote, addStars } from '@/lib/db'
 import { searchArtistVideos, searchYouTubeVideo } from '@/lib/youtubeDataApi'
 import type { Song } from '@/types'
 import type { YTVideo } from '@/lib/youtubeDataApi'
@@ -257,6 +257,7 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
             lyrics,
             createdAt: Date.now(),
           }, userId)
+          addStars(userId, 1).catch(() => {})
         } catch { /* skip */ }
         done++
         setImportProgress({ done, total: toImport.length })
@@ -275,6 +276,7 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
             lyrics: [],
             createdAt: Date.now(),
           }, userId)
+          addStars(userId, 1).catch(() => {})
         } catch { /* skip */ }
         done++
         setImportProgress({ done, total: toImport.length })

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ChevronRight, Trash2 } from 'lucide-react'
+import { Music2, ChevronRight, Trash2, CheckCircle2, FileText, MinusCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Song } from '@/types'
@@ -12,6 +12,8 @@ interface Props {
 
 export function SongCard({ song, onDelete }: Props) {
   const { t } = useTranslation()
+  const hasSynced = song.lyrics.some(l => l.timestamp !== undefined)
+  const hasLyrics = song.lyrics.length > 0
 
   return (
     <Link to={`/songs/${song.id}`}>
@@ -28,9 +30,25 @@ export function SongCard({ song, onDelete }: Props) {
             <Badge variant="secondary" className="hidden sm:flex">
               {t(`languages.${song.language}`, song.language)}
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              {t('song.lines', { count: song.lyrics.length })}
-            </span>
+
+            {hasSynced ? (
+              <Badge
+                variant="outline"
+                className="hidden sm:flex gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400"
+              >
+                <CheckCircle2 className="h-3 w-3" /> Synced
+              </Badge>
+            ) : hasLyrics ? (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                <FileText className="h-3 w-3" />
+                {t('song.lines', { count: song.lyrics.length })}
+              </span>
+            ) : (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                <MinusCircle className="h-3 w-3" /> No lyrics
+              </span>
+            )}
+
             {onDelete && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete() }}

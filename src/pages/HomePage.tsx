@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, Music2 } from 'lucide-react'
+import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -26,6 +26,10 @@ export function HomePage() {
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const PAGE_SIZE = 20
+  const RECENT_MS = 5 * 60 * 1000
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -51,10 +55,11 @@ export function HomePage() {
     return () => clearTimeout(timer)
   }, [load, query])
 
-  // Reset filters when view or query changes
+  // Reset filters and page when view or query changes
   useEffect(() => {
     setFilterArtist('')
     setFilterLanguage('')
+    setCurrentPage(1)
   }, [view, query])
 
   async function handleDelete(id: string) {
@@ -79,14 +84,31 @@ export function HomePage() {
 
   const ALL = '__all__'
 
-  const filteredSongs = useMemo(() =>
-    songs
+  const filteredSongs = useMemo(() => {
+    const now = Date.now()
+    return [...songs]
       .filter(s => !filterArtist || filterArtist === ALL || s.artist === filterArtist)
-      .filter(s => !filterLanguage || filterLanguage === ALL || s.language === filterLanguage),
-    [songs, filterArtist, filterLanguage]
+      .filter(s => !filterLanguage || filterLanguage === ALL || s.language === filterLanguage)
+      .sort((a, b) => {
+        const aNew = now - a.createdAt < RECENT_MS
+        const bNew = now - b.createdAt < RECENT_MS
+        if (aNew && !bNew) return -1
+        if (!aNew && bNew) return 1
+        if (aNew && bNew) return b.createdAt - a.createdAt
+        return a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title)
+      })
+  }, [songs, filterArtist, filterLanguage, RECENT_MS])
+
+  const totalPages = Math.ceil(filteredSongs.length / PAGE_SIZE)
+  const pagedSongs = useMemo(
+    () => filteredSongs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredSongs, currentPage, PAGE_SIZE]
   )
 
   const hasActiveFilters = filterArtist || filterLanguage
+
+  // Reset to page 1 when active filters change
+  useEffect(() => { setCurrentPage(1) }, [filterArtist, filterLanguage])
 
   return (
     <div className="space-y-5">
@@ -94,7 +116,7 @@ export function HomePage() {
         <div>
           <h1 className="text-2xl font-bold">{t('home.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {loading ? '…' : t('home.songCount', { count: filteredSongs.length })}
+            {loading ? '…' : t('home.songCount', { count: filteredSongs.length })}{!loading && totalPages > 1 ? ` · page ${currentPage}/${totalPages}` : ''}
           </p>
         </div>
         {user && (
@@ -215,15 +237,43 @@ export function HomePage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-2">
-          {filteredSongs.map((song) => (
-            <SongCard
-              key={song.id}
-              song={song}
-              onDelete={view === 'mine' ? () => handleDelete(song.id) : undefined}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-2">
+            {pagedSongs.map((song) => (
+              <SongCard
+                key={song.id}
+                song={song}
+                onDelete={view === 'mine' ? () => handleDelete(song.id) : undefined}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Prev
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {user && (
