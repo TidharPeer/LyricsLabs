@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X } from 'lucide-react'
+import { Plus, Search, Globe, User, X, Music2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SongCard } from '@/components/songs/SongCard'
+import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
@@ -24,6 +25,7 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
+  const [bandDialogOpen, setBandDialogOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -96,12 +98,18 @@ export function HomePage() {
           </p>
         </div>
         {user && (
-          <Button asChild>
-            <Link to="/songs/new">
-              <Plus className="h-4 w-4" />
-              {t('nav.addSong')}
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBandDialogOpen(true)}>
+              <Music2 className="h-4 w-4" />
+              Import Band
+            </Button>
+            <Button asChild>
+              <Link to="/songs/new">
+                <Plus className="h-4 w-4" />
+                {t('nav.addSong')}
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -216,6 +224,16 @@ export function HomePage() {
             />
           ))}
         </div>
+      )}
+
+      {user && (
+        <BandSearchDialog
+          open={bandDialogOpen}
+          onOpenChange={setBandDialogOpen}
+          existingSongs={songs}
+          userId={user.id}
+          onImportDone={load}
+        />
       )}
     </div>
   )
