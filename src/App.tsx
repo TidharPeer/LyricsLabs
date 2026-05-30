@@ -11,6 +11,7 @@ import { GamePage } from '@/pages/GamePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
+import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
 export default function App() {
   return (
@@ -18,8 +19,9 @@ export default function App() {
       <ThemeProvider>
       <AuthProvider>
         <Routes>
-          {/* Auth page has its own full-screen layout */}
+          {/* Auth pages have their own full-screen layout */}
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
           {/* All other pages share the header layout */}
           <Route path="/*" element={
