@@ -41,31 +41,46 @@ function DisclaimerDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   )
 }
 
+const CONCERT_BG = [
+  'radial-gradient(ellipse 40% 62% at 14% 100%, rgba(255,100,15,0.55) 0%, transparent 62%)',
+  'radial-gradient(ellipse 28% 48% at 50% 100%, rgba(255,225,55,0.48) 0%, transparent 54%)',
+  'radial-gradient(ellipse 40% 62% at 86% 100%, rgba(150,30,255,0.50) 0%, transparent 62%)',
+  'radial-gradient(ellipse 18% 45% at 2%  100%, rgba(30,90,255,0.38) 0%, transparent 54%)',
+  'radial-gradient(ellipse 18% 45% at 98% 100%, rgba(0,200,170,0.32) 0%, transparent 54%)',
+  'radial-gradient(ellipse 100% 38% at 50% 100%, rgba(140,35,12,0.28) 0%, transparent 48%)',
+  'linear-gradient(175deg, #04030f 0%, #08051e 40%, #0f0618 70%, #060311 100%)',
+].join(', ')
+
 function LandingPage() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false)
 
+  useEffect(() => {
+    document.body.style.background = CONCERT_BG
+    return () => { document.body.style.background = '' }
+  }, [])
+
   const features = [
     {
-      icon: <BookOpen className="h-6 w-6 text-indigo-500" />,
-      iconBg: 'bg-indigo-50 dark:bg-indigo-950/30',
+      icon: <BookOpen className="h-6 w-6 text-indigo-400" />,
+      iconBg: 'bg-indigo-500/20',
       title: 'Community Library',
       description: 'Browse hundreds of songs added by the community, ready to learn.',
     },
     {
-      icon: <Music className="h-6 w-6 text-violet-500" />,
-      iconBg: 'bg-violet-50 dark:bg-violet-950/30',
+      icon: <Music className="h-6 w-6 text-violet-400" />,
+      iconBg: 'bg-violet-500/20',
       title: 'Karaoke Practice',
       description: 'Practice lyrics word-by-word with our interactive karaoke-style player.',
     },
     {
-      icon: <Star className="h-6 w-6 text-amber-500" />,
-      iconBg: 'bg-amber-50 dark:bg-amber-950/30',
+      icon: <Star className="h-6 w-6 text-amber-400" />,
+      iconBg: 'bg-amber-500/20',
       title: 'Earn Stars',
       description: 'Get rewarded with stars as you complete songs and improve your accuracy.',
     },
     {
-      icon: <Flame className="h-6 w-6 text-orange-500" />,
-      iconBg: 'bg-orange-50 dark:bg-orange-950/30',
+      icon: <Flame className="h-6 w-6 text-orange-400" />,
+      iconBg: 'bg-orange-500/20',
       title: 'Daily Streaks',
       description: 'Build a daily practice habit and keep your streak alive.',
     },
@@ -74,43 +89,39 @@ function LandingPage() {
   return (
     <div className="flex flex-col items-center">
       {/* Hero */}
-      <div className="w-full flex justify-center rounded-2xl bg-gradient-to-b from-indigo-50/60 to-transparent dark:from-indigo-950/25 dark:to-transparent mb-2">
       <div className="flex flex-col items-center text-center py-16 gap-5 max-w-xl">
-        <div className="flex items-center justify-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-            <Music className="h-8 w-8 text-primary" />
-          </div>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
+          <Music className="h-8 w-8 text-white" />
         </div>
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">LyricsLab</h1>
-          <p className="mt-2 text-lg text-muted-foreground">Master song lyrics through karaoke-style practice</p>
+          <h1 className="text-4xl font-bold tracking-tight text-white">LyricsLab</h1>
+          <p className="mt-2 text-lg text-white/65">Master song lyrics through karaoke-style practice</p>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-white/55">
           Build your personal song library, practice lyrics interactively, earn stars, and keep a daily streak — all in one place.
         </p>
         <Button size="lg" asChild className="mt-2 px-8">
           <Link to="/auth">Get Started — Sign In</Link>
         </Button>
       </div>
-      </div>
 
       {/* Features */}
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
         {features.map((f) => (
-          <div key={f.title} className="rounded-xl border bg-card p-5 flex flex-col gap-2">
+          <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 flex flex-col gap-2">
             <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${f.iconBg}`}>
               {f.icon}
             </div>
-            <h3 className="font-semibold">{f.title}</h3>
-            <p className="text-sm text-muted-foreground">{f.description}</p>
+            <h3 className="font-semibold text-white">{f.title}</h3>
+            <p className="text-sm text-white/55">{f.description}</p>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="mt-16 text-xs text-muted-foreground">
+      <div className="mt-16 text-xs text-white/35">
         <button
-          className="underline underline-offset-2 hover:text-foreground transition-colors"
+          className="underline underline-offset-2 hover:text-white/65 transition-colors"
           onClick={() => setDisclaimerOpen(true)}
         >
           Disclaimer
