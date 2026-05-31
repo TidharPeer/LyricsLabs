@@ -165,6 +165,11 @@ export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
 
+  useEffect(() => {
+    console.log('[HomePage] MOUNTED — user:', user?.id, 'authLoading:', authLoading)
+    return () => console.log('[HomePage] UNMOUNTED')
+  }, [])
+
   const [view, setView] = useState<View>(() => {
     const saved = sessionStorage.getItem('homeView')
     return saved === 'mine' ? 'mine' : 'all'

@@ -10,6 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const location = useLocation()
   const isAuth = location.pathname === '/auth'
+  console.log('[Layout] render — path:', location.pathname, 'user:', user?.id ?? 'null')
 
   return (
     <div className="min-h-screen">

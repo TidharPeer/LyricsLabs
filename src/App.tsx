@@ -14,6 +14,7 @@ import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
 export default function App() {
+  console.log('[App] render')
   return (
     <BrowserRouter>
       <ThemeProvider>
