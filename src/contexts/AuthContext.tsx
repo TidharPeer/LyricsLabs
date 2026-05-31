@@ -29,8 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
+    // getSession only drives the loading flag — onAuthStateChange is the
+    // sole source of truth for user state, so we never overwrite it here
+    supabase.auth.getSession().then(() => {
       setLoading(false)
     })
 
