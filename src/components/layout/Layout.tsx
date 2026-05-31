@@ -2,12 +2,12 @@ import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Music, Music2, ListMusic } from 'lucide-react'
 import { UserMenu } from './UserMenu'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuthUser } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 
 export function Layout() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user } = useAuthUser()
   const location = useLocation()
   const isAuth = location.pathname === '/auth'
   return (
