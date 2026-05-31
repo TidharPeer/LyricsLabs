@@ -121,6 +121,38 @@ function LandingPage() {
 
 type View = 'all' | 'mine'
 
+function useSongs(view: View, query: string, userId: string | undefined) {
+  const [songs, setSongs] = useState<Song[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    const timer = setTimeout(async () => {
+      try {
+        const result = query.length >= 2
+          ? await searchSongs(query)
+          : view === 'mine'
+            ? await fetchMySongs(userId)
+            : await fetchSongs()
+        if (!cancelled) setSongs(result)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load songs')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }, query.length >= 2 ? 400 : 0)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [view, query, userId, reloadToken])
+
+  const reload = useCallback(() => setReloadToken(t => t + 1), [])
+  return { songs, setSongs, loading, error, setError, reload }
+}
+
 export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
@@ -130,9 +162,7 @@ export function HomePage() {
     return saved === 'mine' ? 'mine' : 'all'
   })
   const [query, setQuery] = useState('')
-  const [songs, setSongs] = useState<Song[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, user?.id)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
@@ -142,32 +172,6 @@ export function HomePage() {
 
   const PAGE_SIZE = 20
   const RECENT_MS = 5 * 60 * 1000
-
-  const load = useCallback(async () => {
-    console.log(user, view, query);
-    if (!user?.id) return;
-    setLoading(true)
-    setError(null)
-    try {
-      if (query.length >= 2) {
-        setSongs(await searchSongs(query))
-      } else if (view === 'mine' && user) {
-        setSongs(await fetchMySongs(user.id))
-      } else {
-        setSongs(await fetchSongs())
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load songs')
-      setSongs([])
-    } finally {
-      setLoading(false)
-    }
-  }, [view, query, user?.id])
-
-  useEffect(() => {
-    const timer = setTimeout(load, query ? 400 : 0)
-    return () => clearTimeout(timer)
-  }, [load, query])
 
   useEffect(() => {
     setFilterArtist('')
@@ -428,7 +432,7 @@ export function HomePage() {
           onOpenChange={setBandDialogOpen}
           existingSongs={songs}
           userId={user.id}
-          onImportDone={load}
+          onImportDone={reload}
         />
       )}
 
