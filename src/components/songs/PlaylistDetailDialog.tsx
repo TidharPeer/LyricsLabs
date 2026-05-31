@@ -156,7 +156,7 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 p-0">
         {/* Header */}
-        <DialogHeader className="px-5 pt-5 pb-4 border-b">
+        <DialogHeader className="pl-5 pr-12 pt-5 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="truncate pr-4">{playlist.name}</DialogTitle>
             <div className="flex items-center gap-2 shrink-0">
