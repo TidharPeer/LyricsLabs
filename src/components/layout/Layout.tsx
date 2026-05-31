@@ -12,7 +12,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isAuth = location.pathname === '/auth'
 
   return (
-    <div className={cn("min-h-screen", user && "bg-background")}>
+    <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between gap-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold">

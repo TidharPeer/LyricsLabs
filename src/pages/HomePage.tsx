@@ -41,23 +41,9 @@ function DisclaimerDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   )
 }
 
-const CONCERT_BG = [
-  'radial-gradient(ellipse 40% 62% at 14% 100%, rgba(255,100,15,0.55) 0%, transparent 62%)',
-  'radial-gradient(ellipse 28% 48% at 50% 100%, rgba(255,225,55,0.48) 0%, transparent 54%)',
-  'radial-gradient(ellipse 40% 62% at 86% 100%, rgba(150,30,255,0.50) 0%, transparent 62%)',
-  'radial-gradient(ellipse 18% 45% at 2%  100%, rgba(30,90,255,0.38) 0%, transparent 54%)',
-  'radial-gradient(ellipse 18% 45% at 98% 100%, rgba(0,200,170,0.32) 0%, transparent 54%)',
-  'radial-gradient(ellipse 100% 38% at 50% 100%, rgba(140,35,12,0.28) 0%, transparent 48%)',
-  'linear-gradient(175deg, #04030f 0%, #08051e 40%, #0f0618 70%, #060311 100%)',
-].join(', ')
 
 function LandingPage() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false)
-
-  useEffect(() => {
-    document.body.style.background = CONCERT_BG
-    return () => { document.body.style.background = '' }
-  }, [])
 
   const features = [
     {
@@ -174,7 +160,7 @@ export function HomePage() {
     } finally {
       setLoading(false)
     }
-  }, [view, query, user])
+  }, [view, query, user?.id])
 
   useEffect(() => {
     const timer = setTimeout(load, query ? 400 : 0)
