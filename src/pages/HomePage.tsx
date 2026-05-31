@@ -123,7 +123,7 @@ type View = 'all' | 'mine'
 
 export function HomePage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
   const [view, setView] = useState<View>(() => {
     const saved = sessionStorage.getItem('homeView')
@@ -230,9 +230,8 @@ export function HomePage() {
     return String(n)
   }
 
-  if (!user) {
-    return <LandingPage />
-  }
+  if (authLoading) return null
+  if (!user) return <LandingPage />
 
   return (
     <div className="space-y-5">
@@ -341,7 +340,7 @@ export function HomePage() {
         </div>
       )}
 
-      {loading ? (
+      {loading && songs.length === 0 ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl border bg-muted/30 animate-pulse" />

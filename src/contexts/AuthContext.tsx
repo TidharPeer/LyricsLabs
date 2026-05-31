@@ -34,16 +34,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setStats(null)
+        return
+      }
       const newUser = session?.user ?? null
-      setUser(newUser)
       if (newUser) {
+        setUser(newUser)
         // updateStreak is idempotent for the same day; it returns fresh stats
         updateStreak(newUser.id)
           .then(setStats)
           .catch(() => getUserStats(newUser.id).then(setStats))
-      } else {
-        setStats(null)
       }
     })
 
