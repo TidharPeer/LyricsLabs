@@ -249,7 +249,7 @@ export function HomePage() {
     return String(n)
   }
 
-  if (authLoading) return null
+  if (authLoading && !user) return null
   if (!user) return <LandingPage />
 
   return (

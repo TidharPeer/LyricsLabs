@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { HomePage } from '@/pages/HomePage'
@@ -11,7 +12,7 @@ import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
-export function AppRoutes() {
+export const AppRoutes = memo(function AppRoutes() {
   return (
     <Routes>
       {/* Auth pages — full-screen, no layout */}
@@ -32,4 +33,4 @@ export function AppRoutes() {
       </Route>
     </Routes>
   )
-}
+})
