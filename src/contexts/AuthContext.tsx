@@ -41,9 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
       const newUser = session?.user ?? null
-      if (newUser) {
-        setUser(newUser)
-        // updateStreak is idempotent for the same day; it returns fresh stats
+      if (!newUser) return
+
+      // Return the existing object when the user ID hasn't changed so React
+      // sees no state difference and skips re-renders (prevents double song load
+      // caused by TOKEN_REFRESHED firing with a new User object but same id)
+      setUser(prev => (prev?.id === newUser.id ? prev : newUser))
+
+      // Only update streak on actual sign-in, not on token refreshes
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         updateStreak(newUser.id)
           .then(setStats)
           .catch(() => getUserStats(newUser.id).then(setStats))
