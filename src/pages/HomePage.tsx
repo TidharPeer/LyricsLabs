@@ -175,7 +175,7 @@ export function HomePage() {
     return saved === 'mine' ? 'mine' : 'all'
   })
   const [query, setQuery] = useState('')
-  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, user?.id)
+  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, authLoading ? undefined : user?.id)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
