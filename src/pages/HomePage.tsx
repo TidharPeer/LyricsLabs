@@ -46,22 +46,26 @@ function LandingPage() {
 
   const features = [
     {
-      icon: <BookOpen className="h-6 w-6 text-primary" />,
+      icon: <BookOpen className="h-6 w-6 text-indigo-500" />,
+      iconBg: 'bg-indigo-50 dark:bg-indigo-950/30',
       title: 'Community Library',
       description: 'Browse hundreds of songs added by the community, ready to learn.',
     },
     {
-      icon: <Music className="h-6 w-6 text-primary" />,
+      icon: <Music className="h-6 w-6 text-violet-500" />,
+      iconBg: 'bg-violet-50 dark:bg-violet-950/30',
       title: 'Karaoke Practice',
       description: 'Practice lyrics word-by-word with our interactive karaoke-style player.',
     },
     {
-      icon: <Star className="h-6 w-6 text-primary" />,
+      icon: <Star className="h-6 w-6 text-amber-500" />,
+      iconBg: 'bg-amber-50 dark:bg-amber-950/30',
       title: 'Earn Stars',
       description: 'Get rewarded with stars as you complete songs and improve your accuracy.',
     },
     {
-      icon: <Flame className="h-6 w-6 text-primary" />,
+      icon: <Flame className="h-6 w-6 text-orange-500" />,
+      iconBg: 'bg-orange-50 dark:bg-orange-950/30',
       title: 'Daily Streaks',
       description: 'Build a daily practice habit and keep your streak alive.',
     },
@@ -70,6 +74,7 @@ function LandingPage() {
   return (
     <div className="flex flex-col items-center">
       {/* Hero */}
+      <div className="w-full flex justify-center rounded-2xl bg-gradient-to-b from-indigo-50/60 to-transparent dark:from-indigo-950/25 dark:to-transparent mb-2">
       <div className="flex flex-col items-center text-center py-16 gap-5 max-w-xl">
         <div className="flex items-center justify-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -87,12 +92,15 @@ function LandingPage() {
           <Link to="/auth">Get Started — Sign In</Link>
         </Button>
       </div>
+      </div>
 
       {/* Features */}
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
         {features.map((f) => (
           <div key={f.title} className="rounded-xl border bg-card p-5 flex flex-col gap-2">
-            {f.icon}
+            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${f.iconBg}`}>
+              {f.icon}
+            </div>
             <h3 className="font-semibold">{f.title}</h3>
             <p className="text-sm text-muted-foreground">{f.description}</p>
           </div>

@@ -20,7 +20,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
 
   return (
     <Link to={`/songs/${song.id}`} className="group block">
-      <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+      <Card className="transition-colors hover:bg-muted/50 cursor-pointer border-l-2 border-l-indigo-500/30 hover:border-l-indigo-500/70">
         <CardContent className="flex items-center gap-4 p-4">
           {/* Left icon: Music note → Play on hover */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">

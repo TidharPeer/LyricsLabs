@@ -38,8 +38,8 @@
     --card-foreground:       var(--gray-10);
     --popover:               var(--gray-00);
     --popover-foreground:    var(--gray-10);
-    --primary:               var(--gray-09);
-    --primary-foreground:    var(--gray-01);
+    --primary:               #4f46e5;
+    --primary-foreground:    #ffffff;
     --secondary:             var(--gray-02);
     --secondary-foreground:  var(--gray-09);
     --muted:                 var(--gray-02);
@@ -50,7 +50,7 @@
     --destructive-foreground: var(--gray-01);
     --border:                var(--gray-03);
     --input:                 var(--gray-03);
-    --ring:                  var(--gray-09);
+    --ring:                  #4f46e5;
   }
 
   .dark {
@@ -61,8 +61,8 @@
     --card-foreground:       var(--gray-01);
     --popover:               var(--gray-10);
     --popover-foreground:    var(--gray-01);
-    --primary:               var(--gray-01);
-    --primary-foreground:    var(--gray-09);
+    --primary:               #818cf8;
+    --primary-foreground:    #1e1b4b;
     --secondary:             var(--gray-09);
     --secondary-foreground:  var(--gray-01);
     --muted:                 var(--gray-09);
@@ -73,7 +73,7 @@
     --destructive-foreground: var(--gray-01);
     --border:                var(--gray-09);
     --input:                 var(--gray-09);
-    --ring:                  var(--gray-04);
+    --ring:                  #818cf8;
   }
 }
 
