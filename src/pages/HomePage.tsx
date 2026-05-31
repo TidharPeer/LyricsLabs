@@ -343,10 +343,21 @@ export function HomePage() {
           ))}
         </div>
       ) : filteredSongs.length === 0 && !error ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-          <p className="text-muted-foreground mb-4">
-            {query ? `No songs match "${query}"` : hasActiveFilters ? 'No songs match the selected filters' : t('home.empty')}
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
+          <p className="text-muted-foreground">
+            {query ? `No songs found for "${query}"` : hasActiveFilters ? 'No songs match the selected filters' : t('home.empty')}
           </p>
+          {query && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Don't see it? Be the first to add it!
+              </p>
+              <Button onClick={() => setSearchDialogOpen(true)}>
+                <Search className="h-4 w-4" />
+                Search YouTube &amp; Add
+              </Button>
+            </>
+          )}
           {!query && !hasActiveFilters && user && (
             <Button asChild>
               <Link to="/songs/new">
