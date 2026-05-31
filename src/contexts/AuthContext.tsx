@@ -29,13 +29,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user])
 
   useEffect(() => {
-    // getSession only drives the loading flag — onAuthStateChange is the
-    // sole source of truth for user state, so we never overwrite it here
-    supabase.auth.getSession().then(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      console.log('[Auth] getSession resolved, user:', data.session?.user?.id ?? 'null')
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] onAuthStateChange:', event, 'userId:', session?.user?.id ?? 'null')
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setStats(null)
@@ -44,12 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser = session?.user ?? null
       if (!newUser) return
 
-      // Return the existing object when the user ID hasn't changed so React
-      // sees no state difference and skips re-renders (prevents double song load
-      // caused by TOKEN_REFRESHED firing with a new User object but same id)
-      setUser(prev => (prev?.id === newUser.id ? prev : newUser))
+      setUser(prev => {
+        const same = prev?.id === newUser.id
+        console.log('[Auth] setUser — prev:', prev?.id ?? 'null', '→ new:', newUser.id, same ? '(same, skipping)' : '(updating)')
+        return same ? prev : newUser
+      })
 
-      // Only update streak on actual sign-in, not on token refreshes
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         updateStreak(newUser.id)
           .then(setStats)
