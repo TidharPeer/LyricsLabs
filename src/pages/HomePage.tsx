@@ -129,9 +129,11 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   const lastKeyRef = useRef('')
 
   useEffect(() => {
-    if (!userId) return
+    console.log('[useSongs] effect — userId:', userId, 'view:', view, 'reloadToken:', reloadToken)
+    if (!userId) { console.log('[useSongs] skip: no userId'); return }
     const key = `${view}|${query}|${userId}|${reloadToken}`
-    if (key === lastKeyRef.current) return
+    if (key === lastKeyRef.current) { console.log('[useSongs] skip: duplicate key'); return }
+    console.log('[useSongs] FETCHING (prev key:', lastKeyRef.current || 'empty', ')')
     lastKeyRef.current = key
 
     let cancelled = false
@@ -161,6 +163,11 @@ function useSongs(view: View, query: string, userId: string | undefined) {
 export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    console.log('[HomePage] MOUNTED — user:', user?.id ?? 'null', 'authLoading:', authLoading)
+    return () => console.log('[HomePage] UNMOUNTED')
+  }, [])
 
 
   const [view, setView] = useState<View>(() => {
