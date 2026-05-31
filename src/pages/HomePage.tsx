@@ -144,6 +144,7 @@ export function HomePage() {
   const RECENT_MS = 5 * 60 * 1000
 
   const load = useCallback(async () => {
+    console.log(user, view, query);
     if (!user?.id) return;
     setLoading(true)
     setError(null)
