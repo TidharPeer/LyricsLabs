@@ -276,6 +276,7 @@ export async function fetchPlaylistSongs(playlistId: string): Promise<Song[]> {
     .from('playlist_songs')
     .select('songs(*)')
     .eq('playlist_id', playlistId)
+    .order('position', { ascending: true, nullsFirst: false })
     .order('added_at', { ascending: true })
 
   if (error) throw new Error(error.message)
@@ -285,12 +286,24 @@ export async function fetchPlaylistSongs(playlistId: string): Promise<Song[]> {
     .map(s => rowToSong(s as Record<string, unknown>))
 }
 
-export async function addSongToPlaylist(playlistId: string, songId: string): Promise<void> {
-  const { error } = await supabase
-    .from('playlist_songs')
-    .insert({ playlist_id: playlistId, song_id: songId })
+export async function addSongToPlaylist(playlistId: string, songId: string, position?: number): Promise<void> {
+  const payload: Record<string, unknown> = { playlist_id: playlistId, song_id: songId }
+  if (position !== undefined) payload.position = position
+  const { error } = await supabase.from('playlist_songs').insert(payload)
   // 23505 = unique_violation — song already in playlist, treat as success
   if (error && error.code !== '23505') throw new Error(error.message)
+}
+
+export async function updatePlaylistSongOrder(playlistId: string, orderedSongIds: string[]): Promise<void> {
+  await Promise.all(
+    orderedSongIds.map((songId, position) =>
+      supabase
+        .from('playlist_songs')
+        .update({ position })
+        .eq('playlist_id', playlistId)
+        .eq('song_id', songId)
+    )
+  )
 }
 
 export async function removeSongFromPlaylist(playlistId: string, songId: string): Promise<void> {
