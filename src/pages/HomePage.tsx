@@ -121,42 +121,91 @@ function LandingPage() {
 
 type View = 'all' | 'mine'
 
+// Module-level: survives StrictMode remounts so we can deduplicate in-flight fetches
+let _pendingKey = ''
+let _fetchEpoch = 0
+let _songsCache: { key: string; songs: Song[] } | null = null
+
 function useSongs(view: View, query: string, userId: string | undefined) {
-  const [songs, setSongs] = useState<Song[]>([])
-  const [loading, setLoading] = useState(false)
+  const cacheKey = userId ? `${view}|${query}|${userId}` : ''
+  const cached = _songsCache?.key === cacheKey ? _songsCache.songs : null
+
+  const [songs, setSongs] = useState<Song[]>(cached ?? [])
+  const [loading, setLoading] = useState(!cached && !!userId)
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
-  const lastKeyRef = useRef('')
+
+  // Always-current refs so async callbacks update the live component, not a stale one
+  const setSongsRef = useRef(setSongs)
+  const setLoadingRef = useRef(setLoading)
+  const setErrorRef = useRef(setError)
+  setSongsRef.current = setSongs
+  setLoadingRef.current = setLoading
+  setErrorRef.current = setError
 
   useEffect(() => {
     console.log('[useSongs] effect — userId:', userId, 'view:', view, 'reloadToken:', reloadToken)
-    if (!userId) { console.log('[useSongs] skip: no userId'); return }
-    const key = `${view}|${query}|${userId}|${reloadToken}`
-    if (key === lastKeyRef.current) { console.log('[useSongs] skip: duplicate key'); return }
-    console.log('[useSongs] FETCHING (prev key:', lastKeyRef.current || 'empty', ')')
-    lastKeyRef.current = key
+    if (!userId) { console.log('[useSongs] skip: no userId'); setLoading(false); return }
 
-    let cancelled = false
+    // Serve from cache on remount (e.g. navigation back)
+    if (reloadToken === 0 && _songsCache?.key === cacheKey) {
+      console.log('[useSongs] skip: cache hit')
+      setSongs(_songsCache.songs)
+      setLoading(false)
+      return
+    }
+
+    const fetchKey = `${cacheKey}|${reloadToken}`
+
+    // An identical fetch is already in-flight (StrictMode remount guard)
+    if (fetchKey === _pendingKey) {
+      console.log('[useSongs] skip: fetch already in-flight')
+      return
+    }
+
+    console.log('[useSongs] FETCHING', fetchKey)
+    _pendingKey = fetchKey
+    const myEpoch = ++_fetchEpoch
+
     setLoading(true)
     setError(null)
+
+    const isSearch = query.length >= 2
     const timer = setTimeout(async () => {
+      if (_fetchEpoch !== myEpoch) return  // superseded by a newer fetch
       try {
-        const result = query.length >= 2
+        const result = isSearch
           ? await searchSongs(query)
           : view === 'mine'
             ? await fetchMySongs(userId)
             : await fetchSongs()
-        if (!cancelled) setSongs(result)
+        if (_fetchEpoch !== myEpoch) return
+        _songsCache = { key: cacheKey, songs: result }
+        _pendingKey = ''
+        setSongsRef.current(result)
+        setLoadingRef.current(false)
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load songs')
-      } finally {
-        if (!cancelled) setLoading(false)
+        if (_fetchEpoch !== myEpoch) return
+        _pendingKey = ''
+        setErrorRef.current(err instanceof Error ? err.message : 'Failed to load songs')
+        setLoadingRef.current(false)
       }
-    }, query.length >= 2 ? 400 : 0)
-    return () => { cancelled = true; clearTimeout(timer) }
-  }, [view, query, userId, reloadToken])
+    }, isSearch ? 400 : 0)
 
-  const reload = useCallback(() => setReloadToken(t => t + 1), [])
+    return () => {
+      // Only cancel debounced search timers so they don't fire for stale queries.
+      // Non-debounced fetches are intentionally left running so they can complete
+      // and update the component even after a StrictMode unmount/remount cycle.
+      if (isSearch) clearTimeout(timer)
+    }
+  }, [view, query, userId, reloadToken, cacheKey])
+
+  const reload = useCallback(() => {
+    _songsCache = null
+    _pendingKey = ''
+    _fetchEpoch++
+    setReloadToken(t => t + 1)
+  }, [])
   return { songs, setSongs, loading, error, setError, reload }
 }
 
@@ -175,7 +224,7 @@ export function HomePage() {
     return saved === 'mine' ? 'mine' : 'all'
   })
   const [query, setQuery] = useState('')
-  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, authLoading ? undefined : user?.id)
+  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, user?.id)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
