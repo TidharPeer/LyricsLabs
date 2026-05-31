@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
@@ -13,6 +14,105 @@ import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
+
+function DisclaimerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Disclaimer</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            LyricsLab is a personal, non-commercial project built for educational and entertainment purposes only. No fees are charged and no money is collected from users.
+          </p>
+          <p>
+            Song lyrics displayed on this site are the property of their respective copyright holders. This site does not claim ownership of any lyrics or music content.
+          </p>
+          <p>
+            By using this site, you acknowledge that the creator of LyricsLab is not liable for any claims, damages, or losses of any kind arising from your use of this service. You agree not to hold the creator responsible for any content or functionality provided.
+          </p>
+          <p>
+            This site is provided "as is" without warranties of any kind. Use at your own discretion.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function LandingPage() {
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false)
+
+  const features = [
+    {
+      icon: <BookOpen className="h-6 w-6 text-primary" />,
+      title: 'Community Library',
+      description: 'Browse hundreds of songs added by the community, ready to learn.',
+    },
+    {
+      icon: <Music className="h-6 w-6 text-primary" />,
+      title: 'Karaoke Practice',
+      description: 'Practice lyrics word-by-word with our interactive karaoke-style player.',
+    },
+    {
+      icon: <Star className="h-6 w-6 text-primary" />,
+      title: 'Earn Stars',
+      description: 'Get rewarded with stars as you complete songs and improve your accuracy.',
+    },
+    {
+      icon: <Flame className="h-6 w-6 text-primary" />,
+      title: 'Daily Streaks',
+      description: 'Build a daily practice habit and keep your streak alive.',
+    },
+  ]
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Hero */}
+      <div className="flex flex-col items-center text-center py-16 gap-5 max-w-xl">
+        <div className="flex items-center justify-center gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <Music className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight">LyricsLab</h1>
+          <p className="mt-2 text-lg text-muted-foreground">Master song lyrics through karaoke-style practice</p>
+        </div>
+        <p className="text-muted-foreground">
+          Build your personal song library, practice lyrics interactively, earn stars, and keep a daily streak — all in one place.
+        </p>
+        <Button size="lg" asChild className="mt-2 px-8">
+          <Link to="/auth">Get Started — Sign In</Link>
+        </Button>
+      </div>
+
+      {/* Features */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+        {features.map((f) => (
+          <div key={f.title} className="rounded-xl border bg-card p-5 flex flex-col gap-2">
+            {f.icon}
+            <h3 className="font-semibold">{f.title}</h3>
+            <p className="text-sm text-muted-foreground">{f.description}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-16 text-xs text-muted-foreground">
+        <button
+          className="underline underline-offset-2 hover:text-foreground transition-colors"
+          onClick={() => setDisclaimerOpen(true)}
+        >
+          Disclaimer
+        </button>
+      </div>
+
+      <DisclaimerDialog open={disclaimerOpen} onOpenChange={setDisclaimerOpen} />
+    </div>
+  )
+}
 
 type View = 'all' | 'mine'
 
@@ -123,6 +223,10 @@ export function HomePage() {
   function fmtCount(n: number) {
     if (n >= 1000) return `${Math.round(n / 100) / 10}k`
     return String(n)
+  }
+
+  if (!user) {
+    return <LandingPage />
   }
 
   return (

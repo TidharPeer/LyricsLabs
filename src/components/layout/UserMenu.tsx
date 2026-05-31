@@ -1,10 +1,64 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { User, LogOut, Star, Flame, Sun, Moon } from 'lucide-react'
+import { User, LogOut, Star, Flame, Sun, Moon, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
+
+function ContactDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+
+  function handleSend() {
+    const mailto = `mailto:tidhar.peer@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+    window.open(mailto)
+    onOpenChange(false)
+    setSubject('')
+    setMessage('')
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Contact</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="contact-subject">Subject</Label>
+            <Input
+              id="contact-subject"
+              placeholder="What is this about?"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contact-message">Message</Label>
+            <Textarea
+              id="contact-message"
+              placeholder="Write your message here..."
+              rows={5}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSend} disabled={!subject.trim() || !message.trim()}>
+            Send
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function UserMenu() {
   const { t } = useTranslation()
@@ -12,6 +66,7 @@ export function UserMenu() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
   if (!user) {
     return (
@@ -73,6 +128,13 @@ export function UserMenu() {
                 : <Moon className="h-4 w-4" />}
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </button>
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+              onClick={() => { setContactOpen(true); setOpen(false) }}
+            >
+              <Mail className="h-4 w-4" />
+              Contact
+            </button>
             <div className="border-t my-1" />
             <button
               className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-muted-foreground"
@@ -84,6 +146,8 @@ export function UserMenu() {
           </div>
         </>
       )}
+
+      <ContactDialog open={contactOpen} onOpenChange={setContactOpen} />
     </div>
   )
 }
