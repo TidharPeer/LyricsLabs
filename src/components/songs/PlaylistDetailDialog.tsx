@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Search, Trash2, X, Plus, Loader2, Music2, Play, GripVertical } from 'lucide-react'
 import {
-  DndContext, closestCenter, DragEndEvent,
+  DndContext, closestCenter,
   KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
 import {
   SortableContext, verticalListSortingStrategy,
   useSortable, arrayMove,
