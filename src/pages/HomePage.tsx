@@ -129,11 +129,9 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   const lastKeyRef = useRef('')
 
   useEffect(() => {
-    console.log('[useSongs] effect fired — view:', view, 'query:', query, 'userId:', userId, 'reloadToken:', reloadToken)
-    if (!userId) { console.log('[useSongs] no userId, skipping'); return }
+    if (!userId) return
     const key = `${view}|${query}|${userId}|${reloadToken}`
-    if (key === lastKeyRef.current) { console.log('[useSongs] duplicate key, skipping:', key); return }
-    console.log('[useSongs] FETCHING — key:', key, '(prev was:', lastKeyRef.current, ')')
+    if (key === lastKeyRef.current) return
     lastKeyRef.current = key
 
     let cancelled = false
@@ -146,7 +144,6 @@ function useSongs(view: View, query: string, userId: string | undefined) {
           : view === 'mine'
             ? await fetchMySongs(userId)
             : await fetchSongs()
-        console.log('[useSongs] fetch complete, songs:', result.length)
         if (!cancelled) setSongs(result)
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load songs')
@@ -154,7 +151,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
         if (!cancelled) setLoading(false)
       }
     }, query.length >= 2 ? 400 : 0)
-    return () => { console.log('[useSongs] cleanup — cancelled'); cancelled = true; clearTimeout(timer) }
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [view, query, userId, reloadToken])
 
   const reload = useCallback(() => setReloadToken(t => t + 1), [])
@@ -165,10 +162,6 @@ export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
 
-  useEffect(() => {
-    console.log('[HomePage] MOUNTED — user:', user?.id, 'authLoading:', authLoading)
-    return () => console.log('[HomePage] UNMOUNTED')
-  }, [])
 
   const [view, setView] = useState<View>(() => {
     const saved = sessionStorage.getItem('homeView')

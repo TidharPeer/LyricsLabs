@@ -29,13 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      console.log('[Auth] getSession resolved, user:', data.session?.user?.id ?? 'null')
+    supabase.auth.getSession().then(() => {
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Auth] onAuthStateChange:', event, 'userId:', session?.user?.id ?? 'null')
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setStats(null)
@@ -44,11 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser = session?.user ?? null
       if (!newUser) return
 
-      setUser(prev => {
-        const same = prev?.id === newUser.id
-        console.log('[Auth] setUser — prev:', prev?.id ?? 'null', '→ new:', newUser.id, same ? '(same, skipping)' : '(updating)')
-        return same ? prev : newUser
-      })
+      setUser(prev => (prev?.id === newUser.id ? prev : newUser))
 
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         updateStreak(newUser.id)

@@ -14,32 +14,27 @@ import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
 export default function App() {
-  console.log('[App] render')
   return (
     <BrowserRouter>
       <ThemeProvider>
       <AuthProvider>
         <Routes>
-          {/* Auth pages have their own full-screen layout */}
+          {/* Auth pages — full-screen, no layout */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-          {/* All other pages share the header layout */}
-          <Route path="/*" element={
-            <Layout>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/playlists" element={<PlaylistsPage />} />
-                <Route path="/playlists/:id/play" element={<PlaylistPlayerPage />} />
-                <Route path="/songs/new" element={<SongFormPage />} />
-                <Route path="/songs/:id" element={<SongDetailPage />} />
-                <Route path="/songs/:id/edit" element={<SongFormPage />} />
-                <Route path="/songs/:id/timestamps" element={<TimestampPage />} />
-                <Route path="/songs/:id/game/:mode" element={<GamePage />} />
-              </Routes>
-            </Layout>
-          } />
+          {/* All other pages — Layout renders Outlet, React Router owns the lifecycle */}
+          <Route element={<Layout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/playlists" element={<PlaylistsPage />} />
+            <Route path="/playlists/:id/play" element={<PlaylistPlayerPage />} />
+            <Route path="/songs/new" element={<SongFormPage />} />
+            <Route path="/songs/:id" element={<SongDetailPage />} />
+            <Route path="/songs/:id/edit" element={<SongFormPage />} />
+            <Route path="/songs/:id/timestamps" element={<TimestampPage />} />
+            <Route path="/songs/:id/game/:mode" element={<GamePage />} />
+          </Route>
         </Routes>
       </AuthProvider>
       </ThemeProvider>

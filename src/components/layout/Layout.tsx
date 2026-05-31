@@ -1,17 +1,15 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Music, Music2, ListMusic } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const location = useLocation()
   const isAuth = location.pathname === '/auth'
-  console.log('[Layout] render — path:', location.pathname, 'user:', user?.id ?? 'null')
-
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
@@ -53,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {!isAuth && <UserMenu />}
         </div>
       </header>
-      <main className="container py-6">{children}</main>
+      <main className="container py-6"><Outlet /></main>
     </div>
   )
 }
