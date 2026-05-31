@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen } from 'lucide-react'
@@ -126,9 +126,14 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
+  const lastKeyRef = useRef('')
 
   useEffect(() => {
     if (!userId) return
+    const key = `${view}|${query}|${userId}|${reloadToken}`
+    if (key === lastKeyRef.current) return   // exact same fetch already ran — skip
+    lastKeyRef.current = key
+
     let cancelled = false
     setLoading(true)
     setError(null)
