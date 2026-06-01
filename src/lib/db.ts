@@ -346,10 +346,13 @@ function rowToSong(row: Record<string, unknown>): Song {
     lyrics: (row.lyrics as Song['lyrics']) ?? [],
     createdAt: new Date(row.created_at as string).getTime(),
     createdBy: (row.created_by as string) ?? undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at as string).getTime() : undefined,
+    updatedBy: (row.updated_by as string) ?? undefined,
   }
 }
 
 function songToRow(song: Song, userId: string) {
+  const now = new Date().toISOString()
   return {
     id: song.id,
     title: song.title,
@@ -360,5 +363,7 @@ function songToRow(song: Song, userId: string) {
     lyrics: song.lyrics,
     created_by: userId,
     created_at: new Date(song.createdAt).toISOString(),
+    updated_by: userId,
+    updated_at: now,
   }
 }

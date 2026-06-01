@@ -13,7 +13,9 @@ export interface Song {
   youtubeId: string
   lyrics: LyricLine[]
   createdAt: number
-  createdBy?: string // user id — set when saved to Supabase
+  createdBy?: string
+  updatedAt?: number
+  updatedBy?: string
 }
 
 export interface GameSession {
