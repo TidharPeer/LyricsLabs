@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, Music2, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen } from 'lucide-react'
+import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen, Mic2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -303,9 +303,11 @@ export function HomePage() {
         </h1>
         {user && (
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" onClick={() => setBandDialogOpen(true)}>
-              <Music2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Import Band</span>
+            <Button variant="outline" asChild>
+              <Link to="/import-concert">
+                <Mic2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Import Concert</span>
+              </Link>
             </Button>
             <Button variant="outline" asChild>
               <Link to="/songs/new">
