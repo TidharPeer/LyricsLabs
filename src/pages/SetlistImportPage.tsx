@@ -86,7 +86,7 @@ async function enrichByYouTubeIds(
       unmatched.slice(i, i + CONCURRENCY).map(async ({ idx, songName }) => {
         if (tokenRef.current !== token) return
         try {
-          const videoIds = await searchYouTubeVideoIds(artistName, songName, 5)
+          const videoIds = await searchYouTubeVideoIds(artistName, songName, 15)
           const matched = videoIds.find(id => byVideoId.has(id))
           if (matched && tokenRef.current === token) {
             onMatch(idx, byVideoId.get(matched)!)
