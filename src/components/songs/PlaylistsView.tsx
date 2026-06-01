@@ -134,7 +134,7 @@ export function PlaylistsView({ userId }: Props) {
                   )}
                   <button
                     onClick={e => handleShare(e, pl)}
-                    className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="hidden group-hover:flex rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     title="Share playlist"
                   >
                     <Share2 className="h-4 w-4" />
