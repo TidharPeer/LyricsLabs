@@ -333,7 +333,14 @@ export function SetlistImportPage() {
     updateSong(index, { status: 'importing' })
     try {
       const lyrics = await fetchLyrics(libraryArtist, songName)
-      const videoId = await searchYouTubeVideo(libraryArtist, songName)
+
+      // Try primary artist name, then fall back to the setlist.fm English name
+      // (important when libraryArtist is in a non-Latin script, e.g. Hebrew)
+      let videoId = await searchYouTubeVideo(libraryArtist, songName)
+      if (!videoId && selectedArtist && selectedArtist.name !== libraryArtist) {
+        videoId = await searchYouTubeVideo(selectedArtist.name, songName)
+      }
+
       const saved = await saveSongRemote({
         id: crypto.randomUUID(),
         title: songName,

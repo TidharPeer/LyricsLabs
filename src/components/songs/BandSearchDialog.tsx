@@ -241,12 +241,36 @@ export function BandSearchDialog({ open, onOpenChange, existingSongs, userId, on
 
     let done = 0
     if (withLyrics) {
+      // Pre-fetch the artist's top YouTube videos in one API call, then match by
+      // title. This avoids N individual searches (100 quota units each) for batch imports.
+      const normalize = (s: string) =>
+        s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim()
+
+      const ytTitleMap = new Map<string, string>() // normalized title → videoId
+      const artistName = (toImport as LrclibTrack[])[0]?.artistName ?? artistQuery
+      try {
+        const videos = await searchArtistVideos(artistName, 50)
+        for (const v of videos) {
+          const { songTitle } = parseVideoTitle(v.title, v.channelTitle)
+          ytTitleMap.set(normalize(songTitle), v.videoId)
+          ytTitleMap.set(normalize(v.title), v.videoId)
+        }
+      } catch { /* quota or key issue — fall through to per-song searches */ }
+
       for (const track of toImport as LrclibTrack[]) {
         try {
           const lyrics = track.syncedLyrics
             ? parseLRC(track.syncedLyrics)
             : track.plainLyrics ? parsePlain(track.plainLyrics) : []
-          const videoId = await searchYouTubeVideo(track.artistName, track.trackName)
+
+          // 1. Try pre-fetched map (free — no extra quota)
+          let videoId: string | null = ytTitleMap.get(normalize(track.trackName)) ?? null
+
+          // 2. Fall back to individual search only when pre-fetch missed
+          if (!videoId) {
+            videoId = await searchYouTubeVideo(track.artistName, track.trackName)
+          }
+
           await saveSongRemote({
             id: crypto.randomUUID(),
             title: track.trackName,
