@@ -13,6 +13,7 @@ import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 
 export const AppRoutes = memo(function AppRoutes() {
+  console.log('[AppRoutes] render')
   return (
     <Routes>
       {/* Auth pages — full-screen, no layout */}
