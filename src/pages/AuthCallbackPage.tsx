@@ -10,21 +10,24 @@ export function AuthCallbackPage() {
   useEffect(() => {
     const handle = async () => {
       // PKCE flow: code in query string
-      const code = new URLSearchParams(window.location.search).get('code')
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const type = params.get('type')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) { setError(error.message); return }
-        navigate('/', { replace: true })
+        navigate(type === 'recovery' ? '/auth?reset=true' : '/', { replace: true })
         return
       }
 
       // Implicit flow: access_token in hash — Supabase fires onAuthStateChange
       const hash = window.location.hash
+      const isRecovery = hash.includes('type=recovery')
       if (hash.includes('access_token')) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
           if (session) {
             subscription.unsubscribe()
-            navigate('/', { replace: true })
+            navigate(isRecovery ? '/auth?reset=true' : '/', { replace: true })
           }
         })
         // Safety timeout: if we never get a session, go back to /auth

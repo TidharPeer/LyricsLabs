@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2 } from 'lucide-react'
+import { Music2, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,20 +13,25 @@ export function AuthPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user, signUp, signIn, signInWithGoogle } = useAuth()
+  const { user, signUp, signIn, signInWithGoogle, resetPassword, updatePassword } = useAuth()
+
+  const isReset = searchParams.get('reset') === 'true'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
   const refCode = searchParams.get('ref') ?? ''
 
-  // Redirect if already signed in
+  // Redirect if already signed in (but not if we're in reset mode)
   useEffect(() => {
-    if (user) navigate('/', { replace: true })
-  }, [user, navigate])
+    if (user && !isReset) navigate('/', { replace: true })
+  }, [user, navigate, isReset])
 
   async function handleSignUp() {
     setError('')
@@ -34,9 +39,7 @@ export function AuthPage() {
     const { error: err } = await signUp(email, password)
     setLoading(false)
     if (err) { setError(err); return }
-    // Handle referral after signup (user id available via onAuthStateChange)
     if (refCode) {
-      // Wait briefly for the session to settle
       setTimeout(async () => {
         const { data } = await import('@/lib/supabase').then(m => m.supabase.auth.getUser())
         if (data.user) await handleReferral(refCode, data.user.id)
@@ -51,7 +54,6 @@ export function AuthPage() {
     const { error: err } = await signIn(email, password)
     setLoading(false)
     if (err) setError(err)
-    // navigation handled by useEffect above
   }
 
   async function handleGoogle() {
@@ -60,6 +62,87 @@ export function AuthPage() {
     if (err) setError(err)
   }
 
+  async function handleForgotPassword() {
+    if (!email) { setError(t('auth.enterEmailFirst')); return }
+    setError('')
+    setLoading(true)
+    const { error: err } = await resetPassword(email)
+    setLoading(false)
+    if (err) setError(err)
+    else setSuccessMsg(t('auth.resetEmailSent'))
+  }
+
+  async function handleSetNewPassword() {
+    if (!newPassword) return
+    setError('')
+    setLoading(true)
+    const { error: err } = await updatePassword(newPassword)
+    setLoading(false)
+    if (err) { setError(err); return }
+    setSuccessMsg(t('auth.passwordUpdated'))
+    setTimeout(() => navigate('/', { replace: true }), 1500)
+  }
+
+  // ── Reset-password form ────────────────────────────────────────────────────
+  if (isReset) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <Music2 className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold">{t('auth.resetPasswordTitle')}</h1>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>{t('auth.newPassword')}</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSetNewPassword()}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowNewPassword(v => !v)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            {successMsg && <p className="text-xs text-green-600">{successMsg}</p>}
+
+            <Button
+              className="w-full"
+              onClick={handleSetNewPassword}
+              disabled={loading || !newPassword}
+            >
+              {loading ? t('common.loading') : t('auth.setNewPassword')}
+            </Button>
+
+            <button
+              type="button"
+              className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => navigate('/auth', { replace: true })}
+            >
+              {t('auth.backToSignIn')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal sign-in / sign-up form ─────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
@@ -91,7 +174,7 @@ export function AuthPage() {
             <TabsTrigger value="signup" className="flex-1">{t('auth.signUp')}</TabsTrigger>
           </TabsList>
 
-          {['signin', 'signup'].map((tab) => (
+          {(['signin', 'signup'] as const).map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-4 mt-4">
               <div className="space-y-1.5">
                 <Label>{t('auth.email')}</Label>
@@ -99,19 +182,31 @@ export function AuthPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label>{t('auth.password')}</Label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
+                    className="pr-9"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowPassword(v => !v)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {error && <p className="text-xs text-destructive">{error}</p>}
@@ -124,6 +219,17 @@ export function AuthPage() {
               >
                 {loading ? t('common.loading') : tab === 'signin' ? t('auth.signIn') : t('auth.signUp')}
               </Button>
+
+              {tab === 'signin' && (
+                <button
+                  type="button"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {t('auth.forgotPassword')}
+                </button>
+              )}
             </TabsContent>
           ))}
         </Tabs>

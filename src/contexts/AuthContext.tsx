@@ -12,6 +12,8 @@ interface AuthUserContextValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: string | null }>
+  updatePassword: (password: string) => Promise<{ error: string | null }>
 }
 
 // Stable context — only changes when user/stats change, not when loading changes.
@@ -83,12 +85,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }, [])
 
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error: error?.message ?? null }
+  }, [])
+
   // Memoized so the stable context value only changes when user/stats actually change,
   // not when loading changes. This prevents Layout (which reads from this context)
   // from re-rendering during the loading→loaded transition.
   const userValue = useMemo<AuthUserContextValue>(() => ({
-    user, stats, refreshStats, signUp, signIn, signInWithGoogle, signOut,
-  }), [user, stats, refreshStats, signUp, signIn, signInWithGoogle, signOut])
+    user, stats, refreshStats, signUp, signIn, signInWithGoogle, signOut, resetPassword, updatePassword,
+  }), [user, stats, refreshStats, signUp, signIn, signInWithGoogle, signOut, resetPassword, updatePassword])
 
   return (
     <AuthUserContext.Provider value={userValue}>
