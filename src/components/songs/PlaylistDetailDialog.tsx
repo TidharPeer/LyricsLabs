@@ -30,6 +30,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
   onDelete: (id: string) => void
   onSongCountChange: (id: string, count: number) => void
+  userId?: string
 }
 
 interface SortableRowProps {
@@ -78,9 +79,28 @@ function SortableSongRow({ song, onRemove }: SortableRowProps) {
   )
 }
 
-export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, onSongCountChange }: Props) {
+function ReadonlySongRow({ song }: { song: Song }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <Music2 className="h-4 w-4 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{song.title}</p>
+        <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+      </div>
+      <Badge variant="secondary" className="hidden sm:flex shrink-0 text-xs">
+        {t(`languages.${song.language}`, song.language)}
+      </Badge>
+    </div>
+  )
+}
+
+export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, onSongCountChange, userId }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const isOwner = !userId || userId === playlist.createdBy
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
@@ -170,15 +190,17 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
                   Play
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8 text-xs"
-                onClick={() => setShowSearch(v => !v)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {t('playlist.addSongs')}
-              </Button>
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-8 text-xs"
+                  onClick={() => setShowSearch(v => !v)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('playlist.addSongs')}
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -197,7 +219,7 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
             <p className="py-8 text-center text-sm text-muted-foreground">
               No songs yet.
             </p>
-          ) : (
+          ) : isOwner ? (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} autoScroll>
               <SortableContext items={songs.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 <div className="divide-y">
@@ -207,10 +229,16 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
                 </div>
               </SortableContext>
             </DndContext>
+          ) : (
+            <div className="divide-y">
+              {songs.map(song => (
+                <ReadonlySongRow key={song.id} song={song} />
+              ))}
+            </div>
           )}
 
           {/* Add songs search panel */}
-          {showSearch && (
+          {isOwner && showSearch && (
             <div className="px-5 py-4 border-t space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -262,23 +290,25 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
           )}
         </div>
 
-        {/* Footer — Delete (kept far from the X close button) */}
-        <div className="border-t px-5 py-3 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => {
-              if (window.confirm(t('playlist.deleteConfirm'))) {
-                onDelete(playlist.id)
-                onOpenChange(false)
-              }
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('playlist.deletePlaylist')}
-          </Button>
-        </div>
+        {/* Footer — Delete (owner only, kept far from the X close button) */}
+        {isOwner && (
+          <div className="border-t px-5 py-3 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                if (window.confirm(t('playlist.deleteConfirm'))) {
+                  onDelete(playlist.id)
+                  onOpenChange(false)
+                }
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('playlist.deletePlaylist')}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

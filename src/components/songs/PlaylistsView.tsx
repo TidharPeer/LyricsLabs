@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ListMusic, Trash2, Loader2, Play } from 'lucide-react'
+import { Plus, ListMusic, Trash2, Loader2, Play, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -47,6 +47,16 @@ export function PlaylistsView({ userId }: Props) {
       setPlaylists(prev => prev.filter(p => p.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete playlist')
+    }
+  }
+
+  function handleShare(e: React.MouseEvent, pl: Playlist) {
+    e.stopPropagation()
+    const url = `${window.location.origin}/playlists/${pl.id}/play`
+    if (navigator.share) {
+      navigator.share({ title: pl.name, url }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(url).catch(() => {})
     }
   }
 
@@ -123,6 +133,13 @@ export function PlaylistsView({ userId }: Props) {
                     </Button>
                   )}
                   <button
+                    onClick={e => handleShare(e, pl)}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    title="Share playlist"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={e => {
                       e.stopPropagation()
                       if (window.confirm(t('playlist.deleteConfirm'))) handleDelete(pl.id)
@@ -156,6 +173,7 @@ export function PlaylistsView({ userId }: Props) {
             setSelected(null)
           }}
           onSongCountChange={handleSongCountChange}
+          userId={userId}
         />
       )}
     </div>

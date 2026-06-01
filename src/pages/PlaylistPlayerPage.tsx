@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Shuffle, SkipBack, SkipForward, Music2, ListMusic, Loader2 } from 'lucide-react'
+import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { KaraokeView } from '@/components/player/KaraokeView'
@@ -57,6 +57,15 @@ export function PlaylistPlayerPage() {
   const goPrev = useCallback(() => {
     setPos(p => Math.max(0, p - 1))
   }, [])
+
+  function sharePlaylist() {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: playlist?.name ?? 'Playlist', url }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(url).catch(() => {})
+    }
+  }
 
   function toggleShuffle() {
     if (order) {
@@ -116,6 +125,16 @@ export function PlaylistPlayerPage() {
           <p className="text-xs text-muted-foreground">{t('playlist.playlists')}</p>
           <h1 className="text-lg font-semibold truncate">{playlist.name}</h1>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 shrink-0"
+          onClick={sharePlaylist}
+          title="Share playlist"
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
         <Button
           variant={order ? 'default' : 'outline'}
           size="sm"
