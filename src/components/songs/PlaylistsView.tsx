@@ -52,7 +52,7 @@ export function PlaylistsView({ userId }: Props) {
 
   function handleShare(e: React.MouseEvent, pl: Playlist) {
     e.stopPropagation()
-    const url = `${window.location.origin}/playlists/${pl.id}/play`
+    const url = `${window.location.origin}/api/share?id=${pl.id}`
     if (navigator.share) {
       navigator.share({ title: pl.name, url }).catch(() => {})
     } else {

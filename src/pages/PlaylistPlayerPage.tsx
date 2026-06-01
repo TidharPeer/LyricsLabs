@@ -59,7 +59,7 @@ export function PlaylistPlayerPage() {
   }, [])
 
   function sharePlaylist() {
-    const url = window.location.href
+    const url = `${window.location.origin}/api/share?id=${id}`
     if (navigator.share) {
       navigator.share({ title: playlist?.name ?? 'Playlist', url }).catch(() => {})
     } else {
