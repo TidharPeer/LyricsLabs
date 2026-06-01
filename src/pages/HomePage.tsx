@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen, Mic2, Users } from 'lucide-react'
+import logoUrl from '@/assets/lyrics_labs_logo.svg'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -77,9 +78,7 @@ function LandingPage() {
     <div className="flex flex-col items-center">
       {/* Hero */}
       <div className="flex flex-col items-center text-center py-16 gap-5 max-w-xl">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
-          <Music className="h-8 w-8 text-white" />
-        </div>
+        <img src={logoUrl} alt="LyricsLabs" className="h-20 w-20" />
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-white">LyricsLabs</h1>
           <p className="mt-2 text-lg text-white/65">Master song lyrics through karaoke-style practice</p>
