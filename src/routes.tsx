@@ -12,6 +12,7 @@ import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { PlaylistPlayerPage } from '@/pages/PlaylistPlayerPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { TermsPage } from '@/pages/TermsPage'
 
 export const AppRoutes = memo(function AppRoutes() {
   return (
@@ -32,6 +33,7 @@ export const AppRoutes = memo(function AppRoutes() {
         <Route path="/songs/:id/timestamps" element={<TimestampPage />} />
         <Route path="/songs/:id/game/:mode" element={<GamePage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
       </Route>
     </Routes>
   )
