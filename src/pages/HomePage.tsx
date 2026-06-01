@@ -24,13 +24,13 @@ function DisclaimerDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         </DialogHeader>
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            LyricsLab is a personal, non-commercial project built for educational and entertainment purposes only. No fees are charged and no money is collected from users.
+            LyricsLabs is a personal, non-commercial project built for educational and entertainment purposes only. No fees are charged and no money is collected from users.
           </p>
           <p>
             Song lyrics displayed on this site are the property of their respective copyright holders. This site does not claim ownership of any lyrics or music content.
           </p>
           <p>
-            By using this site, you acknowledge that the creator of LyricsLab is not liable for any claims, damages, or losses of any kind arising from your use of this service. You agree not to hold the creator responsible for any content or functionality provided.
+            By using this site, you acknowledge that the creator of LyricsLabs is not liable for any claims, damages, or losses of any kind arising from your use of this service. You agree not to hold the creator responsible for any content or functionality provided.
           </p>
           <p>
             This site is provided "as is" without warranties of any kind. Use at your own discretion.
@@ -80,7 +80,7 @@ function LandingPage() {
           <Music className="h-8 w-8 text-white" />
         </div>
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-white">LyricsLab</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-white">LyricsLabs</h1>
           <p className="mt-2 text-lg text-white/65">Master song lyrics through karaoke-style practice</p>
         </div>
         <p className="text-white/55">
