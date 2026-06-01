@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertCircle, ListMusic,
-  Plus, MapPin, Calendar, List, Mic2,
+  MapPin, Calendar, List, Mic2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,15 +46,61 @@ function findInLibrary(library: Song[], artist: string, title: string): Song | u
   return library.find(s => normStr(s.title) === nt && normStr(s.artist) === na)
 }
 
-function buildStates(
-  songs: SetlistSong[],
-  library: Song[],
-  artistName: string,
-): SongImportState[] {
+function buildStates(songs: SetlistSong[], library: Song[], artistName: string): SongImportState[] {
   return songs.map(song => {
     const existing = findInLibrary(library, artistName, song.name)
     return { song, status: existing ? 'in-library' : 'not-imported', songId: existing?.id }
   })
+}
+
+// Indices of songs that should start checked (all not-yet-imported)
+function defaultChecked(states: SongImportState[]): Set<number> {
+  return new Set(states.flatMap((s, i) => s.status === 'not-imported' ? [i] : []))
+}
+
+// ─── ImportActions: renders the select-all/import bar ─────────────────────────
+
+interface ImportActionsProps {
+  checkedCount: number
+  missingCount: number
+  importingCount: number
+  onSelectAll: () => void
+  onDeselectAll: () => void
+  onImport: () => void
+}
+
+function ImportActions({ checkedCount, missingCount, importingCount, onSelectAll, onDeselectAll, onImport }: ImportActionsProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        onClick={onSelectAll}
+        disabled={importingCount > 0 || missingCount === 0}
+      >
+        Select all
+      </button>
+      <span className="text-xs text-muted-foreground">·</span>
+      <button
+        className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        onClick={onDeselectAll}
+        disabled={importingCount > 0 || checkedCount === 0}
+      >
+        Deselect all
+      </button>
+      <div className="flex-1" />
+      <Button
+        size="sm"
+        onClick={onImport}
+        disabled={checkedCount === 0 || importingCount > 0}
+      >
+        {importingCount > 0 ? (
+          <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Importing…</>
+        ) : (
+          `Import Selected (${checkedCount})`
+        )}
+      </Button>
+    </div>
+  )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -70,10 +116,11 @@ export function SetlistImportPage() {
   const [setlists, setSetlists] = useState<Setlist[]>([])
   const [selectedSetlist, setSelectedSetlist] = useState<Setlist | null>(null)
   const [songStates, setSongStates] = useState<SongImportState[]>([])
+  const [checkedSongs, setCheckedSongs] = useState<Set<number>>(new Set())
   const [library, setLibrary] = useState<Song[]>([])
 
-  // The artist name to use when matching against the library — may differ from
-  // the setlist.fm name when the band uses a non-Latin script in the library.
+  // Artist name to match against the library — may differ from the setlist.fm name
+  // when the band uses a non-Latin script (e.g. Hebrew, Japanese).
   const [libraryArtist, setLibraryArtist] = useState('')
 
   const [searching, setSearching] = useState(false)
@@ -95,7 +142,7 @@ export function SetlistImportPage() {
     return null
   }
 
-  // ── Step 1: Search artists ─────────────────────────────────────────────────
+  // ── Step 1 ─────────────────────────────────────────────────────────────────
 
   async function handleSearchArtists() {
     if (!artistQuery.trim()) return
@@ -118,6 +165,7 @@ export function SetlistImportPage() {
     setArtists([])
     setSetlists([])
     setSongStates([])
+    setCheckedSongs(new Set())
     setSelectedArtist(null)
     setSelectedSetlist(null)
     setCreatedPlaylistId(null)
@@ -125,7 +173,7 @@ export function SetlistImportPage() {
     setError(null)
   }
 
-  // ── Step 2: Select concert ─────────────────────────────────────────────────
+  // ── Step 2 ─────────────────────────────────────────────────────────────────
 
   async function handleSelectArtist(artist: SetlistArtist) {
     setSelectedArtist(artist)
@@ -143,13 +191,15 @@ export function SetlistImportPage() {
     }
   }
 
-  // ── Step 3: Songs ──────────────────────────────────────────────────────────
+  // ── Step 3 ─────────────────────────────────────────────────────────────────
 
   function handleSelectSetlist(setlist: Setlist) {
     setSelectedSetlist(setlist)
     const artistName = setlist.artist.name
     setLibraryArtist(artistName)
-    setSongStates(buildStates(extractSetlistSongs(setlist), library, artistName))
+    const states = buildStates(extractSetlistSongs(setlist), library, artistName)
+    setSongStates(states)
+    setCheckedSongs(defaultChecked(states))
     setPlaylistName(`${artistName} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
     setStep('songs')
     setCreatedPlaylistId(null)
@@ -158,14 +208,42 @@ export function SetlistImportPage() {
   function handleLibraryArtistChange(newName: string) {
     setLibraryArtist(newName)
     if (!selectedSetlist) return
-    // Re-check the whole list instantly against the new artist name.
-    // Preserve any songs that were already manually imported.
-    setSongStates(prev => prev.map(state => {
-      if (state.status === 'importing' || state.status === 'imported') return state
-      const existing = findInLibrary(library, newName, state.song.name)
-      if (existing) return { ...state, status: 'in-library', songId: existing.id }
-      return { ...state, status: 'not-imported', songId: undefined }
-    }))
+    const songs = extractSetlistSongs(selectedSetlist)
+    const next = songs.map((song, i): SongImportState => {
+      const cur = songStates[i]
+      if (cur?.status === 'importing' || cur?.status === 'imported') return cur
+      const existing = findInLibrary(library, newName, song.name)
+      return existing
+        ? { song, status: 'in-library', songId: existing.id }
+        : { song, status: 'not-imported', songId: undefined }
+    })
+    setSongStates(next)
+    // Keep existing checked selections, but remove songs that are now in-library
+    // and add songs that just became not-imported
+    setCheckedSongs(prev => {
+      const updated = new Set(prev)
+      next.forEach((state, i) => {
+        if (state.status === 'in-library') updated.delete(i)
+        else if (state.status === 'not-imported' && songStates[i]?.status === 'in-library') updated.add(i)
+      })
+      return updated
+    })
+  }
+
+  function toggleCheck(idx: number) {
+    setCheckedSongs(prev => {
+      const next = new Set(prev)
+      next.has(idx) ? next.delete(idx) : next.add(idx)
+      return next
+    })
+  }
+
+  function selectAllMissing() {
+    setCheckedSongs(new Set(songStates.flatMap((s, i) => s.status === 'not-imported' ? [i] : [])))
+  }
+
+  function deselectAll() {
+    setCheckedSongs(new Set())
   }
 
   function updateSong(index: number, patch: Partial<SongImportState>) {
@@ -189,18 +267,18 @@ export function SetlistImportPage() {
       }, user!.id)
       addStars(user!.id, 1).catch(() => {})
       updateSong(index, { status: 'imported', songId: saved.id })
+      setCheckedSongs(prev => { const next = new Set(prev); next.delete(index); return next })
     } catch (err) {
       updateSong(index, { status: 'error', error: err instanceof Error ? err.message : 'Failed' })
     }
   }
 
-  async function handleImportAllMissing() {
-    const indices = songStates.reduce<number[]>((acc, s, i) => {
-      if (s.status === 'not-imported') acc.push(i)
-      return acc
-    }, [])
-    for (const idx of indices) {
-      await importSong(idx, songStates[idx].song.name)
+  async function handleImportChecked() {
+    const sorted = [...checkedSongs].sort((a, b) => a - b)
+    for (const idx of sorted) {
+      if (songStates[idx]?.status === 'not-imported') {
+        await importSong(idx, songStates[idx].song.name)
+      }
     }
   }
 
@@ -222,11 +300,12 @@ export function SetlistImportPage() {
     }
   }
 
-  // ── Derived counts ─────────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
 
   const inLibraryCount = songStates.filter(s => s.status === 'in-library' || s.status === 'imported').length
   const missingCount = songStates.filter(s => s.status === 'not-imported').length
   const importingCount = songStates.filter(s => s.status === 'importing').length
+  const checkedCount = checkedSongs.size
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -250,18 +329,13 @@ export function SetlistImportPage() {
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 p-4 text-sm space-y-2">
           <p className="font-medium text-amber-800 dark:text-amber-200">API key required</p>
           <p className="text-amber-700 dark:text-amber-300">
-            Register for a free key at{' '}
-            <a
-              href="https://www.setlist.fm/settings/apps"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
+            Register at{' '}
+            <a href="https://www.setlist.fm/settings/apps" target="_blank" rel="noopener noreferrer" className="underline">
               setlist.fm/settings/apps
             </a>
             , then add{' '}
             <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">VITE_SETLISTFM_API_KEY=your-key</code>{' '}
-            to your <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> file and restart.
+            to <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> and restart.
           </p>
         </div>
       )}
@@ -290,16 +364,11 @@ export function SetlistImportPage() {
                 disabled={searching || !hasApiKey}
                 autoFocus
               />
-              <Button
-                onClick={handleSearchArtists}
-                disabled={searching || !artistQuery.trim() || !hasApiKey}
-              >
+              <Button onClick={handleSearchArtists} disabled={searching || !artistQuery.trim() || !hasApiKey}>
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
               </Button>
             </div>
-
             {error && <p className="text-sm text-destructive">{error}</p>}
-
             {artists.length > 0 && (
               <div className="space-y-1">
                 {artists.slice(0, 8).map(artist => (
@@ -370,6 +439,7 @@ export function SetlistImportPage() {
       {/* Step 3: Song list */}
       {step === 'songs' && selectedSetlist && (
         <section className="space-y-4">
+          {/* Concert info */}
           <div>
             <h2 className="font-semibold text-lg">{selectedSetlist.venue.name}</h2>
             <p className="text-sm text-muted-foreground">
@@ -382,9 +452,7 @@ export function SetlistImportPage() {
 
           {/* Library artist override */}
           <div className="rounded-lg border bg-muted/30 px-3 py-2.5 space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Artist name in your library
-            </label>
+            <label className="text-xs font-medium text-muted-foreground">Artist name in your library</label>
             <Input
               className="h-8 text-sm"
               value={libraryArtist}
@@ -392,82 +460,97 @@ export function SetlistImportPage() {
               placeholder="e.g. משינה"
             />
             <p className="text-xs text-muted-foreground">
-              setlist.fm uses English names — change this if your library uses a different script (e.g. Hebrew, Japanese).
+              setlist.fm uses English names. If your library uses a different script, change this — song matching updates instantly.
             </p>
           </div>
 
-          {/* Stats bar */}
-          <div className="flex flex-wrap gap-3 text-xs">
-            <span className="text-muted-foreground">{songStates.length} songs total</span>
-            {inLibraryCount > 0 && (
-              <span className="text-green-600 dark:text-green-400">{inLibraryCount} in library</span>
-            )}
-            {missingCount > 0 && (
-              <span className="text-muted-foreground">{missingCount} not imported</span>
-            )}
-            {importingCount > 0 && (
-              <span className="text-blue-600 dark:text-blue-400">{importingCount} importing…</span>
-            )}
+          {/* Stats */}
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span>{songStates.length} songs</span>
+            {inLibraryCount > 0 && <span className="text-green-600 dark:text-green-400">{inLibraryCount} in library</span>}
+            {missingCount > 0 && <span>{missingCount} not imported</span>}
+            {importingCount > 0 && <span className="text-blue-600 dark:text-blue-400">{importingCount} importing…</span>}
           </div>
+
+          {/* ── Top action bar ── */}
+          {missingCount > 0 && (
+            <ImportActions
+              checkedCount={checkedCount}
+              missingCount={missingCount}
+              importingCount={importingCount}
+              onSelectAll={selectAllMissing}
+              onDeselectAll={deselectAll}
+              onImport={handleImportChecked}
+            />
+          )}
 
           {/* Song rows */}
           <div className="space-y-1">
-            {songStates.map((state, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-lg border p-2.5">
-                <span className="w-6 shrink-0 text-right text-xs text-muted-foreground">{i + 1}.</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{state.song.name}</p>
-                  {state.song.cover && (
-                    <p className="text-xs text-muted-foreground">cover of {state.song.cover.name}</p>
+            {songStates.map((state, i) => {
+              const selectable = state.status === 'not-imported' || state.status === 'error'
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2.5 rounded-lg border p-2.5 transition-colors ${selectable && checkedSongs.has(i) ? 'bg-muted/30' : ''}`}
+                >
+                  {/* Checkbox column — fixed width to keep alignment */}
+                  <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                    {selectable && (
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 cursor-pointer rounded border-border accent-primary"
+                        checked={checkedSongs.has(i)}
+                        onChange={() => toggleCheck(i)}
+                        disabled={importingCount > 0}
+                      />
+                    )}
+                  </div>
+
+                  {/* Position */}
+                  <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">{i + 1}.</span>
+
+                  {/* Song info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{state.song.name}</p>
+                    {state.song.cover && (
+                      <p className="text-xs text-muted-foreground">cover of {state.song.cover.name}</p>
+                    )}
+                  </div>
+
+                  {/* Status */}
+                  {state.status === 'in-library' && (
+                    <Badge variant="outline" className="shrink-0 gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400">
+                      <CheckCircle2 className="h-3 w-3" /> In library
+                    </Badge>
+                  )}
+                  {state.status === 'imported' && (
+                    <Badge variant="outline" className="shrink-0 gap-1 text-xs text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400">
+                      <CheckCircle2 className="h-3 w-3" /> Added
+                    </Badge>
+                  )}
+                  {state.status === 'importing' && (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  )}
+                  {state.status === 'error' && (
+                    <span title={state.error ?? 'Import failed'}>
+                      <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                    </span>
                   )}
                 </div>
-
-                {state.status === 'in-library' && (
-                  <Badge variant="outline" className="shrink-0 gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400">
-                    <CheckCircle2 className="h-3 w-3" /> In library
-                  </Badge>
-                )}
-                {state.status === 'imported' && (
-                  <Badge variant="outline" className="shrink-0 gap-1 text-xs text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400">
-                    <CheckCircle2 className="h-3 w-3" /> Added
-                  </Badge>
-                )}
-                {state.status === 'importing' && (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-                )}
-                {state.status === 'error' && (
-                  <span title={state.error ?? 'Import failed'}>
-                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
-                  </span>
-                )}
-                {state.status === 'not-imported' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 shrink-0 text-xs"
-                    onClick={() => importSong(i, state.song.name)}
-                    disabled={importingCount > 0}
-                  >
-                    <Plus className="h-3 w-3" /> Add
-                  </Button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
 
-          {/* Bulk import */}
+          {/* ── Bottom action bar (repeat for long lists) ── */}
           {missingCount > 0 && (
-            <Button
-              variant="outline"
-              onClick={handleImportAllMissing}
-              disabled={importingCount > 0}
-            >
-              {importingCount > 0 ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing…</>
-              ) : (
-                <>Import All Missing ({missingCount})</>
-              )}
-            </Button>
+            <ImportActions
+              checkedCount={checkedCount}
+              missingCount={missingCount}
+              importingCount={importingCount}
+              onSelectAll={selectAllMissing}
+              onDeselectAll={deselectAll}
+              onImport={handleImportChecked}
+            />
           )}
 
           {/* Playlist creation */}
@@ -483,15 +566,12 @@ export function SetlistImportPage() {
                   placeholder="Playlist name…"
                   disabled={creatingPlaylist}
                 />
-                <Button
-                  onClick={handleCreatePlaylist}
-                  disabled={creatingPlaylist || !playlistName.trim()}
-                >
+                <Button onClick={handleCreatePlaylist} disabled={creatingPlaylist || !playlistName.trim()}>
                   {creatingPlaylist ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Will include {inLibraryCount} song{inLibraryCount === 1 ? '' : 's'} from your library
+                Includes {inLibraryCount} song{inLibraryCount === 1 ? '' : 's'} from your library, in setlist order.
               </p>
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
