@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertCircle, ListMusic,
-  MapPin, Calendar, List, Mic2,
+  MapPin, Calendar, List, Mic2, Search, Music2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -398,7 +398,17 @@ export function SetlistImportPage() {
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Mic2 className="h-6 w-6" /> Import Live Concert
           </h1>
-          <p className="text-sm text-muted-foreground">Powered by setlist.fm</p>
+          <p className="text-sm text-muted-foreground">
+            Setlist data provided by{' '}
+            <a
+              href="https://www.setlist.fm"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              setlist.fm
+            </a>
+          </p>
         </div>
       </div>
 
@@ -445,6 +455,50 @@ export function SetlistImportPage() {
               </Button>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
+
+            {/* How it works — shown until the first search */}
+            {artists.length === 0 && !error && !searching && (
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">How it works</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {([
+                    {
+                      icon: Search,
+                      title: 'Search an artist',
+                      desc: 'Find any band or solo artist by name. We look them up on setlist.fm.',
+                    },
+                    {
+                      icon: Calendar,
+                      title: 'Pick a concert',
+                      desc: 'Browse their last 5 shows that have a published setlist.',
+                    },
+                    {
+                      icon: ListMusic,
+                      title: 'Import & create',
+                      desc: 'Add missing songs to your library and turn the concert into a playlist — in setlist order.',
+                    },
+                  ] as const).map(({ icon: Icon, title, desc }) => (
+                    <div key={title} className="rounded-lg border bg-card p-4 space-y-2">
+                      <Icon className="h-5 w-5 text-muted-foreground" />
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Also great for</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['Discovering songs you haven\'t heard', 'Building a concert-night playlist', 'Catching up on a tour you missed', 'Comparing setlists across shows'].map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
+                        <Music2 className="h-3 w-3" />{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {artists.length > 0 && (
               <div className="space-y-1">
                 {artists.slice(0, 8).map(artist => (
