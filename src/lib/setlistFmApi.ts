@@ -1,11 +1,3 @@
-const BASE_URL = 'https://api.setlist.fm/rest/1.0'
-
-function apiHeaders(): HeadersInit {
-  const key = import.meta.env.VITE_SETLISTFM_API_KEY
-  if (!key) throw new Error('VITE_SETLISTFM_API_KEY is not configured')
-  return { 'x-api-key': key, 'Accept': 'application/json' }
-}
-
 export interface SetlistArtist {
   mbid: string
   name: string
@@ -31,16 +23,20 @@ export interface Setlist {
   tour?: { name: string }
 }
 
+async function proxyGet(path: string, params: Record<string, string> = {}): Promise<Response> {
+  const qs = new URLSearchParams({ path, ...params })
+  return fetch(`/api/setlistfm?${qs}`)
+}
+
 export async function searchSetlistArtists(name: string): Promise<SetlistArtist[]> {
-  const params = new URLSearchParams({ artistName: name, sort: 'relevance', p: '1' })
-  const res = await fetch(`${BASE_URL}/search/artists?${params}`, { headers: apiHeaders() })
+  const res = await proxyGet('/search/artists', { artistName: name, sort: 'relevance', p: '1' })
   if (!res.ok) throw new Error(`setlist.fm search failed (${res.status})`)
   const data = await res.json()
   return (data.artist ?? []) as SetlistArtist[]
 }
 
 export async function getArtistSetlists(mbid: string, limit = 5): Promise<Setlist[]> {
-  const res = await fetch(`${BASE_URL}/artist/${mbid}/setlists?p=1`, { headers: apiHeaders() })
+  const res = await proxyGet(`/artist/${mbid}/setlists`, { p: '1' })
   if (!res.ok) throw new Error(`setlist.fm setlists failed (${res.status})`)
   const data = await res.json()
   const all = (data.setlist ?? []) as Setlist[]
