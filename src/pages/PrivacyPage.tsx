@@ -19,7 +19,7 @@ export function PrivacyPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Overview</h2>
         <p className="text-muted-foreground leading-relaxed">
-          LyricsLab is a personal, non-commercial project for learning song lyrics. This policy explains what
+          LyricsLabs is a personal, non-commercial project for learning song lyrics. This policy explains what
           information we collect and how we use it. We do not sell or share your data with third parties for
           advertising or any commercial purpose.
         </p>
