@@ -1,0 +1,56 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <title>Lyrics Labs Logo</title>
+  <desc>A circular logo featuring a stylized microphone with a musical note, representing Lyrics Labs</desc>
+
+  <!-- Outer circle background -->
+  <circle cx="256" cy="256" r="248" fill="#1A1A2E"/>
+
+  <!-- Accent ring -->
+  <circle cx="256" cy="256" r="248" fill="none" stroke="#7C3AED" stroke-width="8"/>
+
+  <!-- Inner glow ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#A78BFA" stroke-width="2" opacity="0.4"/>
+
+  <!-- Microphone body -->
+  <rect x="214" y="100" width="84" height="135" rx="42" fill="#7C3AED"/>
+  <rect x="223" y="109" width="66" height="117" rx="33" fill="#A78BFA"/>
+
+  <!-- Mic grille lines -->
+  <line x1="229" y1="143" x2="283" y2="143" stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="226" y1="168" x2="286" y2="168" stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="229" y1="193" x2="283" y2="193" stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="226" y1="120" x2="286" y2="120" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Mic stand curved arm + vertical -->
+  <line x1="256" y1="235" x2="256" y2="290" stroke="#A78BFA" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Mic stand base horizontal -->
+  <line x1="211" y1="310" x2="301" y2="310" stroke="#A78BFA" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Curved base arc -->
+  <path d="M211 310 Q256 340 301 310" fill="none" stroke="#A78BFA" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Curved brackets around mic body -->
+  <path d="M196 145 Q172 200 196 248" fill="none" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <path d="M316 145 Q340 200 316 248" fill="none" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Musical note (top right of mic) -->
+  <g transform="translate(340, 112)">
+    <ellipse cx="0" cy="0" rx="18" ry="12" fill="#F59E0B" transform="rotate(-20)"/>
+    <line x1="16" y1="-4" x2="16" y2="-70" stroke="#F59E0B" stroke-width="5.5" stroke-linecap="round"/>
+    <!-- Flag on note -->
+    <path d="M16 -70 Q52 -50 40 -26" fill="none" stroke="#F59E0B" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Decorative dots -->
+  <circle cx="162" cy="218" r="6" fill="#F59E0B" opacity="0.7"/>
+  <circle cx="142" cy="188" r="4.5" fill="#A78BFA" opacity="0.5"/>
+  <circle cx="355" cy="242" r="4.5" fill="#F59E0B" opacity="0.5"/>
+  <circle cx="378" cy="215" r="3.5" fill="#A78BFA" opacity="0.4"/>
+
+  <!-- Text: LYRICS -->
+  <text x="256" y="378" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="58" fill="#FFFFFF" letter-spacing="4">LYRICS</text>
+
+  <!-- Text: LABS -->
+  <text x="256" y="430" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="700" font-size="40" fill="#A78BFA" letter-spacing="12">LABS</text>
+</svg>

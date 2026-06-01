@@ -1,9 +1,10 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music, Music2, ListMusic } from 'lucide-react'
+import { Music2, ListMusic } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { useAuthUser } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
+import logoUrl from '@/assets/lyrics_labs_logo.svg'
 
 export function Layout() {
   const { t } = useTranslation()
@@ -15,7 +16,7 @@ export function Layout() {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between gap-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold">
-            <Music className="h-5 w-5 text-primary" />
+            <img src={logoUrl} alt="LyricsLabs" className="h-7 w-7 rounded-full" />
             <span>{t('app.name')}</span>
           </Link>
 
