@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertCircle, ListMusic,
@@ -46,6 +46,42 @@ function findInLibrary(library: Song[], artist: string, title: string): Song | u
   return library.find(s => normStr(s.title) === nt && normStr(s.artist) === na)
 }
 
+interface LrclibTrack { artistName: string; trackName: string }
+
+// For each unmatched setlist song, query lrclib with the English title to get the
+// native-script title (e.g. "Atid Matok" → "עתיד מתוק"), then re-check the library.
+async function resolveNativeTitles(
+  unmatched: Array<{ idx: number; songName: string }>,
+  artistName: string,
+  library: Song[],
+  token: { current: number },
+  tokenValue: number,
+  onMatch: (idx: number, songId: string) => void,
+) {
+  const CONCURRENCY = 4
+  for (let i = 0; i < unmatched.length; i += CONCURRENCY) {
+    if (token.current !== tokenValue) return
+    const batch = unmatched.slice(i, i + CONCURRENCY)
+    await Promise.all(batch.map(async ({ idx, songName }) => {
+      try {
+        const params = new URLSearchParams({ q: `${artistName} ${songName}` })
+        const res = await fetch(`https://lrclib.net/api/search?${params}`, {
+          headers: { 'Lrclib-Client': 'LyricLab/1.0' },
+        })
+        if (!res.ok) return
+        const tracks = (await res.json()) as LrclibTrack[]
+        for (const track of tracks.slice(0, 5)) {
+          const existing = findInLibrary(library, track.artistName, track.trackName)
+          if (existing) {
+            if (token.current === tokenValue) onMatch(idx, existing.id)
+            break
+          }
+        }
+      } catch { /* ignore */ }
+    }))
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SetlistImportPage() {
@@ -68,6 +104,9 @@ export function SetlistImportPage() {
   const [playlistName, setPlaylistName] = useState('')
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
   const [createdPlaylistId, setCreatedPlaylistId] = useState<string | null>(null)
+  const [enriching, setEnriching] = useState(false)
+
+  const enrichToken = useRef(0)
 
   const hasApiKey = !!import.meta.env.VITE_SETLISTFM_API_KEY
 
@@ -99,6 +138,7 @@ export function SetlistImportPage() {
   }
 
   function resetToSearch() {
+    enrichToken.current++
     setStep('search')
     setArtists([])
     setSetlists([])
@@ -106,6 +146,7 @@ export function SetlistImportPage() {
     setSelectedArtist(null)
     setSelectedSetlist(null)
     setCreatedPlaylistId(null)
+    setEnriching(false)
     setError(null)
   }
 
@@ -140,6 +181,31 @@ export function SetlistImportPage() {
     setPlaylistName(`${setlist.artist.name} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
     setStep('songs')
     setCreatedPlaylistId(null)
+
+    const unmatched = states
+      .map((s, idx) => ({ idx, songName: s.song.name }))
+      .filter(({ idx }) => states[idx].status === 'not-imported')
+
+    if (unmatched.length > 0) {
+      const token = ++enrichToken.current
+      setEnriching(true)
+      resolveNativeTitles(
+        unmatched,
+        setlist.artist.name,
+        library,
+        enrichToken,
+        token,
+        (idx, songId) => {
+          setSongStates(prev => prev.map((s, i) =>
+            i === idx && s.status === 'not-imported'
+              ? { ...s, status: 'in-library', songId }
+              : s
+          ))
+        },
+      ).finally(() => {
+        if (enrichToken.current === token) setEnriching(false)
+      })
+    }
   }
 
   function updateSong(index: number, patch: Partial<SongImportState>) {
@@ -368,6 +434,11 @@ export function SetlistImportPage() {
             )}
             {missingCount > 0 && (
               <span className="text-muted-foreground">{missingCount} not imported</span>
+            )}
+            {enriching && (
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking library…
+              </span>
             )}
             {importingCount > 0 && (
               <span className="text-blue-600 dark:text-blue-400">{importingCount} importing…</span>
