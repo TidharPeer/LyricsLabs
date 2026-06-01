@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertCircle, ListMusic,
@@ -53,23 +53,64 @@ function buildStates(songs: SetlistSong[], library: Song[], artistName: string):
   })
 }
 
-// Indices of songs that should start checked (all not-yet-imported)
 function defaultChecked(states: SongImportState[]): Set<number> {
   return new Set(states.flatMap((s, i) => s.status === 'not-imported' ? [i] : []))
 }
 
-// ─── ImportActions: renders the select-all/import bar ─────────────────────────
+// Background YouTube-ID enrichment: for each unmatched setlist song, search YouTube
+// with the (possibly transliterated) artist + English title. If the returned video ID
+// matches a library song's youtubeId, we found the same track under a different title.
+async function enrichByYouTubeIds(
+  unmatched: Array<{ idx: number; songName: string }>,
+  artistName: string,
+  library: Song[],
+  tokenRef: React.MutableRefObject<number>,
+  token: number,
+  onMatch: (idx: number, song: Song) => void,
+  onDone: () => void,
+) {
+  // Build a fast lookup: youtubeId → library song (restricted to this artist)
+  const byVideoId = new Map<string, Song>()
+  for (const s of library) {
+    if (normStr(s.artist) === normStr(artistName) && s.youtubeId) {
+      byVideoId.set(s.youtubeId, s)
+    }
+  }
+
+  if (byVideoId.size === 0) { onDone(); return }
+
+  const CONCURRENCY = 3
+  for (let i = 0; i < unmatched.length; i += CONCURRENCY) {
+    if (tokenRef.current !== token) { onDone(); return }
+    await Promise.all(
+      unmatched.slice(i, i + CONCURRENCY).map(async ({ idx, songName }) => {
+        if (tokenRef.current !== token) return
+        try {
+          const videoId = await searchYouTubeVideo(artistName, songName)
+          if (videoId && byVideoId.has(videoId) && tokenRef.current === token) {
+            onMatch(idx, byVideoId.get(videoId)!)
+          }
+        } catch { /* ignore */ }
+      })
+    )
+  }
+
+  if (tokenRef.current === token) onDone()
+}
+
+// ─── ImportActions ─────────────────────────────────────────────────────────────
 
 interface ImportActionsProps {
   checkedCount: number
   missingCount: number
   importingCount: number
+  enriching: boolean
   onSelectAll: () => void
   onDeselectAll: () => void
   onImport: () => void
 }
 
-function ImportActions({ checkedCount, missingCount, importingCount, onSelectAll, onDeselectAll, onImport }: ImportActionsProps) {
+function ImportActions({ checkedCount, missingCount, importingCount, enriching, onSelectAll, onDeselectAll, onImport }: ImportActionsProps) {
   return (
     <div className="flex items-center gap-2">
       <button
@@ -87,17 +128,17 @@ function ImportActions({ checkedCount, missingCount, importingCount, onSelectAll
       >
         Deselect all
       </button>
+      {enriching && (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> Checking library…
+        </span>
+      )}
       <div className="flex-1" />
-      <Button
-        size="sm"
-        onClick={onImport}
-        disabled={checkedCount === 0 || importingCount > 0}
-      >
-        {importingCount > 0 ? (
-          <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Importing…</>
-        ) : (
-          `Import Selected (${checkedCount})`
-        )}
+      <Button size="sm" onClick={onImport} disabled={checkedCount === 0 || importingCount > 0}>
+        {importingCount > 0
+          ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Importing…</>
+          : `Import Selected (${checkedCount})`
+        }
       </Button>
     </div>
   )
@@ -118,10 +159,8 @@ export function SetlistImportPage() {
   const [songStates, setSongStates] = useState<SongImportState[]>([])
   const [checkedSongs, setCheckedSongs] = useState<Set<number>>(new Set())
   const [library, setLibrary] = useState<Song[]>([])
-
-  // Artist name to match against the library — may differ from the setlist.fm name
-  // when the band uses a non-Latin script (e.g. Hebrew, Japanese).
   const [libraryArtist, setLibraryArtist] = useState('')
+  const [enriching, setEnriching] = useState(false)
 
   const [searching, setSearching] = useState(false)
   const [loadingSetlists, setLoadingSetlists] = useState(false)
@@ -130,6 +169,8 @@ export function SetlistImportPage() {
   const [playlistName, setPlaylistName] = useState('')
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
   const [createdPlaylistId, setCreatedPlaylistId] = useState<string | null>(null)
+
+  const enrichToken = useRef(0)
 
   const hasApiKey = !!import.meta.env.VITE_SETLISTFM_API_KEY
 
@@ -140,6 +181,36 @@ export function SetlistImportPage() {
   if (!user) {
     navigate('/auth')
     return null
+  }
+
+  // ── Enrichment helpers ─────────────────────────────────────────────────────
+
+  function startYouTubeEnrichment(
+    states: SongImportState[],
+    artistName: string,
+    lib: Song[],
+  ) {
+    const unmatched = states
+      .map((s, idx) => ({ idx, songName: s.song.name }))
+      .filter(({ idx }) => states[idx].status === 'not-imported')
+
+    if (unmatched.length === 0) return
+
+    const token = ++enrichToken.current
+    setEnriching(true)
+
+    enrichByYouTubeIds(
+      unmatched, artistName, lib, enrichToken, token,
+      (idx, song) => {
+        setSongStates(prev => prev.map((s, i) =>
+          i === idx && s.status === 'not-imported'
+            ? { ...s, status: 'in-library', songId: song.id }
+            : s
+        ))
+        setCheckedSongs(prev => { const n = new Set(prev); n.delete(idx); return n })
+      },
+      () => { if (enrichToken.current === token) setEnriching(false) },
+    )
   }
 
   // ── Step 1 ─────────────────────────────────────────────────────────────────
@@ -161,6 +232,7 @@ export function SetlistImportPage() {
   }
 
   function resetToSearch() {
+    enrichToken.current++
     setStep('search')
     setArtists([])
     setSetlists([])
@@ -170,6 +242,7 @@ export function SetlistImportPage() {
     setSelectedSetlist(null)
     setCreatedPlaylistId(null)
     setLibraryArtist('')
+    setEnriching(false)
     setError(null)
   }
 
@@ -203,11 +276,17 @@ export function SetlistImportPage() {
     setPlaylistName(`${artistName} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
     setStep('songs')
     setCreatedPlaylistId(null)
+    startYouTubeEnrichment(states, artistName, library)
   }
 
   function handleLibraryArtistChange(newName: string) {
     setLibraryArtist(newName)
     if (!selectedSetlist) return
+
+    // Cancel any running enrichment
+    enrichToken.current++
+    setEnriching(false)
+
     const songs = extractSetlistSongs(selectedSetlist)
     const next = songs.map((song, i): SongImportState => {
       const cur = songStates[i]
@@ -218,8 +297,6 @@ export function SetlistImportPage() {
         : { song, status: 'not-imported', songId: undefined }
     })
     setSongStates(next)
-    // Keep existing checked selections, but remove songs that are now in-library
-    // and add songs that just became not-imported
     setCheckedSongs(prev => {
       const updated = new Set(prev)
       next.forEach((state, i) => {
@@ -228,6 +305,9 @@ export function SetlistImportPage() {
       })
       return updated
     })
+
+    // Re-run YouTube enrichment with the new artist name
+    startYouTubeEnrichment(next, newName, library)
   }
 
   function toggleCheck(idx: number) {
@@ -242,9 +322,7 @@ export function SetlistImportPage() {
     setCheckedSongs(new Set(songStates.flatMap((s, i) => s.status === 'not-imported' ? [i] : [])))
   }
 
-  function deselectAll() {
-    setCheckedSongs(new Set())
-  }
+  function deselectAll() { setCheckedSongs(new Set()) }
 
   function updateSong(index: number, patch: Partial<SongImportState>) {
     setSongStates(prev => prev.map((s, i) => i === index ? { ...s, ...patch } : s))
@@ -267,7 +345,7 @@ export function SetlistImportPage() {
       }, user!.id)
       addStars(user!.id, 1).catch(() => {})
       updateSong(index, { status: 'imported', songId: saved.id })
-      setCheckedSongs(prev => { const next = new Set(prev); next.delete(index); return next })
+      setCheckedSongs(prev => { const n = new Set(prev); n.delete(index); return n })
     } catch (err) {
       updateSong(index, { status: 'error', error: err instanceof Error ? err.message : 'Failed' })
     }
@@ -311,7 +389,6 @@ export function SetlistImportPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 py-4">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
           <ArrowLeft className="h-4 w-4" />
@@ -324,7 +401,6 @@ export function SetlistImportPage() {
         </div>
       </div>
 
-      {/* API key warning */}
       {!hasApiKey && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 p-4 text-sm space-y-2">
           <p className="font-medium text-amber-800 dark:text-amber-200">API key required</p>
@@ -333,14 +409,13 @@ export function SetlistImportPage() {
             <a href="https://www.setlist.fm/settings/apps" target="_blank" rel="noopener noreferrer" className="underline">
               setlist.fm/settings/apps
             </a>
-            , then add{' '}
-            <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">VITE_SETLISTFM_API_KEY=your-key</code>{' '}
-            to <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> and restart.
+            , then add <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">VITE_SETLISTFM_API_KEY=your-key</code> to{' '}
+            <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> and restart.
           </p>
         </div>
       )}
 
-      {/* Step 1: Artist search */}
+      {/* Step 1 */}
       <section className="space-y-3">
         {step !== 'search' ? (
           <div className="flex items-center gap-2">
@@ -389,7 +464,7 @@ export function SetlistImportPage() {
         )}
       </section>
 
-      {/* Step 2: Concert list */}
+      {/* Step 2 */}
       {step === 'concerts' && (
         <section className="space-y-3">
           <h2 className="font-semibold">Recent Concerts</h2>
@@ -436,10 +511,9 @@ export function SetlistImportPage() {
         </section>
       )}
 
-      {/* Step 3: Song list */}
+      {/* Step 3 */}
       {step === 'songs' && selectedSetlist && (
         <section className="space-y-4">
-          {/* Concert info */}
           <div>
             <h2 className="font-semibold text-lg">{selectedSetlist.venue.name}</h2>
             <p className="text-sm text-muted-foreground">
@@ -460,7 +534,7 @@ export function SetlistImportPage() {
               placeholder="e.g. משינה"
             />
             <p className="text-xs text-muted-foreground">
-              setlist.fm uses English names. If your library uses a different script, change this — song matching updates instantly.
+              setlist.fm uses English. Change this to match your library, then we'll cross-check via YouTube video IDs to catch title differences.
             </p>
           </div>
 
@@ -472,12 +546,13 @@ export function SetlistImportPage() {
             {importingCount > 0 && <span className="text-blue-600 dark:text-blue-400">{importingCount} importing…</span>}
           </div>
 
-          {/* ── Top action bar ── */}
+          {/* Top action bar */}
           {missingCount > 0 && (
             <ImportActions
               checkedCount={checkedCount}
               missingCount={missingCount}
               importingCount={importingCount}
+              enriching={enriching}
               onSelectAll={selectAllMissing}
               onDeselectAll={deselectAll}
               onImport={handleImportChecked}
@@ -493,7 +568,6 @@ export function SetlistImportPage() {
                   key={i}
                   className={`flex items-center gap-2.5 rounded-lg border p-2.5 transition-colors ${selectable && checkedSongs.has(i) ? 'bg-muted/30' : ''}`}
                 >
-                  {/* Checkbox column — fixed width to keep alignment */}
                   <div className="flex h-4 w-4 shrink-0 items-center justify-center">
                     {selectable && (
                       <input
@@ -505,19 +579,13 @@ export function SetlistImportPage() {
                       />
                     )}
                   </div>
-
-                  {/* Position */}
                   <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">{i + 1}.</span>
-
-                  {/* Song info */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{state.song.name}</p>
                     {state.song.cover && (
                       <p className="text-xs text-muted-foreground">cover of {state.song.cover.name}</p>
                     )}
                   </div>
-
-                  {/* Status */}
                   {state.status === 'in-library' && (
                     <Badge variant="outline" className="shrink-0 gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400">
                       <CheckCircle2 className="h-3 w-3" /> In library
@@ -541,12 +609,13 @@ export function SetlistImportPage() {
             })}
           </div>
 
-          {/* ── Bottom action bar (repeat for long lists) ── */}
+          {/* Bottom action bar */}
           {missingCount > 0 && (
             <ImportActions
               checkedCount={checkedCount}
               missingCount={missingCount}
               importingCount={importingCount}
+              enriching={enriching}
               onSelectAll={selectAllMissing}
               onDeselectAll={deselectAll}
               onImport={handleImportChecked}
@@ -577,7 +646,6 @@ export function SetlistImportPage() {
             </div>
           )}
 
-          {/* Playlist created */}
           {createdPlaylistId && (
             <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/20">
               <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
