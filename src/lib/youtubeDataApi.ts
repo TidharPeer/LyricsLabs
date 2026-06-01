@@ -161,20 +161,25 @@ export async function searchVideos(query: string, maxResults = 10): Promise<YTVi
 }
 
 export async function searchYouTubeVideo(artist: string, title: string): Promise<string | null> {
-  if (!API_KEY) return null
+  const ids = await searchYouTubeVideoIds(artist, title, 1)
+  return ids[0] ?? null
+}
+
+export async function searchYouTubeVideoIds(artist: string, title: string, maxResults = 5): Promise<string[]> {
+  if (!API_KEY) return []
   try {
     const params = new URLSearchParams({
       q: `${artist} ${title}`,
       type: 'video',
       part: 'snippet',
-      maxResults: '1',
+      maxResults: String(maxResults),
       key: API_KEY,
     })
     const res = await fetch(`${BASE}/search?${params}`)
-    if (!res.ok) return null
+    if (!res.ok) return []
     const data = await res.json() as { items?: Array<{ id: { videoId: string } }> }
-    return data.items?.[0]?.id?.videoId ?? null
+    return (data.items ?? []).map(i => i.id.videoId).filter(Boolean)
   } catch {
-    return null
+    return []
   }
 }

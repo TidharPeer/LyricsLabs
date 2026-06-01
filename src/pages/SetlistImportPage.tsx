@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { fetchSongs, saveSongRemote, addStars, createPlaylist, addSongToPlaylist } from '@/lib/db'
 import { fetchLyrics } from '@/lib/fetchSongData'
-import { searchYouTubeVideo } from '@/lib/youtubeDataApi'
+import { searchYouTubeVideo, searchYouTubeVideoIds } from '@/lib/youtubeDataApi'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   searchSetlistArtists,
@@ -86,9 +86,10 @@ async function enrichByYouTubeIds(
       unmatched.slice(i, i + CONCURRENCY).map(async ({ idx, songName }) => {
         if (tokenRef.current !== token) return
         try {
-          const videoId = await searchYouTubeVideo(artistName, songName)
-          if (videoId && byVideoId.has(videoId) && tokenRef.current === token) {
-            onMatch(idx, byVideoId.get(videoId)!)
+          const videoIds = await searchYouTubeVideoIds(artistName, songName, 5)
+          const matched = videoIds.find(id => byVideoId.has(id))
+          if (matched && tokenRef.current === token) {
+            onMatch(idx, byVideoId.get(matched)!)
           }
         } catch { /* ignore */ }
       })
