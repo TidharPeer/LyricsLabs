@@ -144,12 +144,10 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   setErrorRef.current = setError
 
   useEffect(() => {
-    console.log('[useSongs] effect — userId:', userId, 'view:', view, 'reloadToken:', reloadToken)
-    if (!userId) { console.log('[useSongs] skip: no userId'); setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
     // Serve from cache on remount (e.g. navigation back)
     if (reloadToken === 0 && _songsCache?.key === cacheKey) {
-      console.log('[useSongs] skip: cache hit')
       setSongs(_songsCache.songs)
       setLoading(false)
       return
@@ -158,12 +156,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
     const fetchKey = `${cacheKey}|${reloadToken}`
 
     // An identical fetch is already in-flight (StrictMode remount guard)
-    if (fetchKey === _pendingKey) {
-      console.log('[useSongs] skip: fetch already in-flight')
-      return
-    }
-
-    console.log('[useSongs] FETCHING', fetchKey)
+    if (fetchKey === _pendingKey) return
     _pendingKey = fetchKey
     const myEpoch = ++_fetchEpoch
 
@@ -213,10 +206,6 @@ export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
 
-  useEffect(() => {
-    console.log('[HomePage] MOUNTED — user:', user?.id ?? 'null', 'authLoading:', authLoading)
-    return () => console.log('[HomePage] UNMOUNTED')
-  }, [])
 
 
   const [view, setView] = useState<View>(() => {

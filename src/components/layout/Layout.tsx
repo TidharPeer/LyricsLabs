@@ -9,7 +9,6 @@ export function Layout() {
   const { t } = useTranslation()
   const { user } = useAuthUser()
   const location = useLocation()
-  console.log('[Layout] render — pathname:', location.pathname, 'key:', location.key)
   const isAuth = location.pathname === '/auth'
   return (
     <div className="min-h-screen">
