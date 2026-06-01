@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen, Mic2 } from 'lucide-react'
+import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen, Mic2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,6 +11,7 @@ import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
 import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
+import { ArtistsGrid } from '@/components/songs/ArtistsGrid'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
@@ -119,7 +120,7 @@ function LandingPage() {
   )
 }
 
-type View = 'all' | 'mine'
+type View = 'all' | 'mine' | 'artists' | string
 
 // Module-level: survives StrictMode remounts so we can deduplicate in-flight fetches
 let _pendingKey = ''
@@ -209,11 +210,27 @@ export function HomePage() {
 
 
   const [view, setView] = useState<View>(() => {
-    const saved = sessionStorage.getItem('homeView')
-    return saved === 'mine' ? 'mine' : 'all'
+    const saved = sessionStorage.getItem('homeView') ?? 'all'
+    if (saved === 'mine' || saved === 'artists') return saved
+    if (saved.startsWith('artist:')) {
+      const tabs: string[] = JSON.parse(sessionStorage.getItem('artistTabs') ?? '[]')
+      if (tabs.includes(saved.slice(7))) return saved
+    }
+    return 'all'
   })
+
+  const [artistTabs, setArtistTabs] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('artistTabs') ?? '[]') }
+    catch { return [] }
+  })
+
   const [query, setQuery] = useState('')
-  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, query, user?.id)
+
+  // Artist tabs + artists grid both use all-songs data; only 'mine' is different
+  const fetchView: 'all' | 'mine' = view === 'mine' ? 'mine' : 'all'
+  // When browsing the artists grid, pass empty query so DB isn't queried (we filter client-side)
+  const fetchQuery = view === 'artists' ? '' : query
+  const { songs, setSongs, loading, error, setError, reload } = useSongs(fetchView, fetchQuery, user?.id)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
@@ -223,6 +240,40 @@ export function HomePage() {
 
   const PAGE_SIZE = 20
   const RECENT_MS = 5 * 60 * 1000
+
+  const tabArtist = view.startsWith('artist:') ? view.slice(7) : null
+
+  function openArtistTab(artist: string) {
+    setArtistTabs(prev => {
+      if (prev.includes(artist)) return prev
+      const next = [...prev, artist]
+      sessionStorage.setItem('artistTabs', JSON.stringify(next))
+      return next
+    })
+    const v = `artist:${artist}`
+    setView(v)
+    setQuery('')
+    sessionStorage.setItem('homeView', v)
+  }
+
+  function closeArtistTab(artist: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setArtistTabs(prev => {
+      const next = prev.filter(a => a !== artist)
+      sessionStorage.setItem('artistTabs', JSON.stringify(next))
+      return next
+    })
+    if (view === `artist:${artist}`) {
+      setView('artists')
+      sessionStorage.setItem('homeView', 'artists')
+    }
+  }
+
+  function switchView(v: string) {
+    setView(v as View)
+    setQuery('')
+    sessionStorage.setItem('homeView', v)
+  }
 
   useEffect(() => {
     setFilterArtist('')
@@ -260,6 +311,7 @@ export function HomePage() {
   const filteredSongs = useMemo(() => {
     const now = Date.now()
     return [...songs]
+      .filter(s => !tabArtist || s.artist === tabArtist)
       .filter(s => !filterArtist || filterArtist === ALL || s.artist === filterArtist)
       .filter(s => !filterLanguage || filterLanguage === ALL || s.language === filterLanguage)
       .sort((a, b) => {
@@ -270,7 +322,7 @@ export function HomePage() {
         if (aNew && bNew) return b.createdAt - a.createdAt
         return a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title)
       })
-  }, [songs, filterArtist, filterLanguage, RECENT_MS])
+  }, [songs, tabArtist, filterArtist, filterLanguage, RECENT_MS])
 
   const totalPages = Math.ceil(filteredSongs.length / PAGE_SIZE)
   const pagedSongs = useMemo(
@@ -294,8 +346,11 @@ export function HomePage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">
-          {view === 'all' ? t('auth.allSongs') : t('auth.mySongs')}
-          {!loading && (
+          {view === 'all' ? t('auth.allSongs')
+            : view === 'mine' ? t('auth.mySongs')
+            : view === 'artists' ? 'Artists'
+            : tabArtist ?? t('auth.allSongs')}
+          {!loading && view !== 'artists' && (
             <span className="ml-1.5 text-lg font-normal text-muted-foreground">
               ({fmtCount(filteredSongs.length)})
             </span>
@@ -324,34 +379,70 @@ export function HomePage() {
       </div>
 
       {user && (
-        <Tabs value={view} onValueChange={(v) => { setView(v as View); setQuery(''); sessionStorage.setItem('homeView', v) }}>
-          <TabsList>
-            <TabsTrigger value="all" className="gap-1.5">
-              <Globe className="h-3.5 w-3.5" />
-              {t('auth.allSongs')}
-            </TabsTrigger>
-            <TabsTrigger value="mine" className="gap-1.5">
-              <User className="h-3.5 w-3.5" />
-              {t('auth.mySongs')}
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={view} onValueChange={switchView}>
+          {/* Scrollable tab bar — wraps horizontally on all screen sizes */}
+          <div className="overflow-x-auto pb-px">
+            <TabsList className="w-max flex-nowrap">
+              <TabsTrigger value="all" className="shrink-0 gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                {t('auth.allSongs')}
+              </TabsTrigger>
+              <TabsTrigger value="mine" className="shrink-0 gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                {t('auth.mySongs')}
+              </TabsTrigger>
+              <TabsTrigger value="artists" className="shrink-0 gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Artists
+              </TabsTrigger>
+              {artistTabs.map(artist => (
+                <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
+                  <Music className="h-3.5 w-3.5 shrink-0" />
+                  <span className="max-w-[8rem] truncate">{artist}</span>
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => closeArtistTab(artist, e)}
+                    className="ml-0.5 rounded p-0.5 opacity-60 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/15"
+                  >
+                    <X className="h-3 w-3" />
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </Tabs>
       )}
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder={t('home.search')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      {view !== 'artists' && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder={tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
 
-      {/* Filters */}
-      {!loading && songs.length > 1 && !query && (
+      {view === 'artists' && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search artists…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filters — hidden for artists grid and artist tabs (artist already implicit) */}
+      {!loading && songs.length > 1 && !query && view !== 'artists' && (
         <div className="flex flex-wrap items-center gap-2">
-          {uniqueArtists.length > 1 && (
+          {uniqueArtists.length > 1 && !tabArtist && (
             <Select value={filterArtist || ALL} onValueChange={v => setFilterArtist(v === ALL ? '' : v)}>
               <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
                 <SelectValue placeholder="All artists" />
@@ -393,19 +484,28 @@ export function HomePage() {
         </div>
       )}
 
-      {error && (
+      {/* Artists grid */}
+      {view === 'artists' && (
+        loading
+          ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="h-24 rounded-lg border bg-muted/30 animate-pulse" />)}
+            </div>
+          : <ArtistsGrid songs={songs} query={query} onArtistClick={openArtistTab} />
+      )}
+
+      {view !== 'artists' && error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500 break-all">
           Could not load songs: {error}
         </div>
       )}
 
-      {loading && songs.length === 0 ? (
+      {view !== 'artists' && loading && songs.length === 0 ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl border bg-muted/30 animate-pulse" />
           ))}
         </div>
-      ) : filteredSongs.length === 0 && !error ? (
+      ) : view !== 'artists' && filteredSongs.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
           <p className="text-muted-foreground">
             {query ? `No songs found for "${query}"` : hasActiveFilters ? 'No songs match the selected filters' : t('home.empty')}
@@ -435,7 +535,7 @@ export function HomePage() {
             </Button>
           )}
         </div>
-      ) : (
+      ) : view !== 'artists' ? (
         <>
           <div className="grid gap-2">
             {pagedSongs.map((song) => (
@@ -443,8 +543,8 @@ export function HomePage() {
                 key={song.id}
                 song={song}
                 userId={user?.id}
-                onDelete={view === 'mine' ? () => handleDelete(song.id) : undefined}
-                onEdit={view === 'mine' ? () => setEditingSong(song) : undefined}
+                onDelete={(view === 'mine' || !!tabArtist) ? () => handleDelete(song.id) : undefined}
+                onEdit={(view === 'mine' || !!tabArtist) ? () => setEditingSong(song) : undefined}
               />
             ))}
           </div>
@@ -477,7 +577,7 @@ export function HomePage() {
             </div>
           )}
         </>
-      )}
+      ) : null}
 
       {user && (
         <BandSearchDialog
