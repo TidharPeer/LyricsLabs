@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertCircle, ListMusic,
@@ -46,40 +46,15 @@ function findInLibrary(library: Song[], artist: string, title: string): Song | u
   return library.find(s => normStr(s.title) === nt && normStr(s.artist) === na)
 }
 
-interface LrclibTrack { artistName: string; trackName: string }
-
-// For each unmatched setlist song, query lrclib with the English title to get the
-// native-script title (e.g. "Atid Matok" → "עתיד מתוק"), then re-check the library.
-async function resolveNativeTitles(
-  unmatched: Array<{ idx: number; songName: string }>,
-  artistName: string,
+function buildStates(
+  songs: SetlistSong[],
   library: Song[],
-  token: { current: number },
-  tokenValue: number,
-  onMatch: (idx: number, songId: string) => void,
-) {
-  const CONCURRENCY = 4
-  for (let i = 0; i < unmatched.length; i += CONCURRENCY) {
-    if (token.current !== tokenValue) return
-    const batch = unmatched.slice(i, i + CONCURRENCY)
-    await Promise.all(batch.map(async ({ idx, songName }) => {
-      try {
-        const params = new URLSearchParams({ q: `${artistName} ${songName}` })
-        const res = await fetch(`https://lrclib.net/api/search?${params}`, {
-          headers: { 'Lrclib-Client': 'LyricLab/1.0' },
-        })
-        if (!res.ok) return
-        const tracks = (await res.json()) as LrclibTrack[]
-        for (const track of tracks.slice(0, 5)) {
-          const existing = findInLibrary(library, track.artistName, track.trackName)
-          if (existing) {
-            if (token.current === tokenValue) onMatch(idx, existing.id)
-            break
-          }
-        }
-      } catch { /* ignore */ }
-    }))
-  }
+  artistName: string,
+): SongImportState[] {
+  return songs.map(song => {
+    const existing = findInLibrary(library, artistName, song.name)
+    return { song, status: existing ? 'in-library' : 'not-imported', songId: existing?.id }
+  })
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -97,6 +72,10 @@ export function SetlistImportPage() {
   const [songStates, setSongStates] = useState<SongImportState[]>([])
   const [library, setLibrary] = useState<Song[]>([])
 
+  // The artist name to use when matching against the library — may differ from
+  // the setlist.fm name when the band uses a non-Latin script in the library.
+  const [libraryArtist, setLibraryArtist] = useState('')
+
   const [searching, setSearching] = useState(false)
   const [loadingSetlists, setLoadingSetlists] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,9 +83,6 @@ export function SetlistImportPage() {
   const [playlistName, setPlaylistName] = useState('')
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
   const [createdPlaylistId, setCreatedPlaylistId] = useState<string | null>(null)
-  const [enriching, setEnriching] = useState(false)
-
-  const enrichToken = useRef(0)
 
   const hasApiKey = !!import.meta.env.VITE_SETLISTFM_API_KEY
 
@@ -138,7 +114,6 @@ export function SetlistImportPage() {
   }
 
   function resetToSearch() {
-    enrichToken.current++
     setStep('search')
     setArtists([])
     setSetlists([])
@@ -146,7 +121,7 @@ export function SetlistImportPage() {
     setSelectedArtist(null)
     setSelectedSetlist(null)
     setCreatedPlaylistId(null)
-    setEnriching(false)
+    setLibraryArtist('')
     setError(null)
   }
 
@@ -172,55 +147,40 @@ export function SetlistImportPage() {
 
   function handleSelectSetlist(setlist: Setlist) {
     setSelectedSetlist(setlist)
-    const songs = extractSetlistSongs(setlist)
-    const states: SongImportState[] = songs.map(song => {
-      const existing = findInLibrary(library, setlist.artist.name, song.name)
-      return { song, status: existing ? 'in-library' : 'not-imported', songId: existing?.id }
-    })
-    setSongStates(states)
-    setPlaylistName(`${setlist.artist.name} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
+    const artistName = setlist.artist.name
+    setLibraryArtist(artistName)
+    setSongStates(buildStates(extractSetlistSongs(setlist), library, artistName))
+    setPlaylistName(`${artistName} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
     setStep('songs')
     setCreatedPlaylistId(null)
+  }
 
-    const unmatched = states
-      .map((s, idx) => ({ idx, songName: s.song.name }))
-      .filter(({ idx }) => states[idx].status === 'not-imported')
-
-    if (unmatched.length > 0) {
-      const token = ++enrichToken.current
-      setEnriching(true)
-      resolveNativeTitles(
-        unmatched,
-        setlist.artist.name,
-        library,
-        enrichToken,
-        token,
-        (idx, songId) => {
-          setSongStates(prev => prev.map((s, i) =>
-            i === idx && s.status === 'not-imported'
-              ? { ...s, status: 'in-library', songId }
-              : s
-          ))
-        },
-      ).finally(() => {
-        if (enrichToken.current === token) setEnriching(false)
-      })
-    }
+  function handleLibraryArtistChange(newName: string) {
+    setLibraryArtist(newName)
+    if (!selectedSetlist) return
+    // Re-check the whole list instantly against the new artist name.
+    // Preserve any songs that were already manually imported.
+    setSongStates(prev => prev.map(state => {
+      if (state.status === 'importing' || state.status === 'imported') return state
+      const existing = findInLibrary(library, newName, state.song.name)
+      if (existing) return { ...state, status: 'in-library', songId: existing.id }
+      return { ...state, status: 'not-imported', songId: undefined }
+    }))
   }
 
   function updateSong(index: number, patch: Partial<SongImportState>) {
     setSongStates(prev => prev.map((s, i) => i === index ? { ...s, ...patch } : s))
   }
 
-  async function importSong(index: number, artistName: string, songName: string) {
+  async function importSong(index: number, songName: string) {
     updateSong(index, { status: 'importing' })
     try {
-      const lyrics = await fetchLyrics(artistName, songName)
-      const videoId = await searchYouTubeVideo(artistName, songName)
+      const lyrics = await fetchLyrics(libraryArtist, songName)
+      const videoId = await searchYouTubeVideo(libraryArtist, songName)
       const saved = await saveSongRemote({
         id: crypto.randomUUID(),
         title: songName,
-        artist: artistName,
+        artist: libraryArtist,
         language: 'en',
         youtubeUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
         youtubeId: videoId ?? '',
@@ -235,14 +195,12 @@ export function SetlistImportPage() {
   }
 
   async function handleImportAllMissing() {
-    if (!selectedSetlist) return
-    const artistName = selectedSetlist.artist.name
     const indices = songStates.reduce<number[]>((acc, s, i) => {
       if (s.status === 'not-imported') acc.push(i)
       return acc
     }, [])
     for (const idx of indices) {
-      await importSong(idx, artistName, songStates[idx].song.name)
+      await importSong(idx, songStates[idx].song.name)
     }
   }
 
@@ -302,10 +260,8 @@ export function SetlistImportPage() {
               setlist.fm/settings/apps
             </a>
             , then add{' '}
-            <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">
-              VITE_SETLISTFM_API_KEY=your-key
-            </code>{' '}
-            to your <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> file and restart the dev server.
+            <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">VITE_SETLISTFM_API_KEY=your-key</code>{' '}
+            to your <code className="rounded bg-amber-100 px-1 dark:bg-amber-900">.env.local</code> file and restart.
           </p>
         </div>
       )}
@@ -415,15 +371,29 @@ export function SetlistImportPage() {
       {step === 'songs' && selectedSetlist && (
         <section className="space-y-4">
           <div>
-            <h2 className="font-semibold text-lg">
-              {selectedSetlist.venue.name}
-            </h2>
+            <h2 className="font-semibold text-lg">{selectedSetlist.venue.name}</h2>
             <p className="text-sm text-muted-foreground">
               {selectedSetlist.venue.city.name}, {selectedSetlist.venue.city.country.name} — {formatSetlistDate(selectedSetlist.eventDate)}
             </p>
             {selectedSetlist.tour && (
               <p className="text-xs text-muted-foreground mt-0.5">{selectedSetlist.tour.name}</p>
             )}
+          </div>
+
+          {/* Library artist override */}
+          <div className="rounded-lg border bg-muted/30 px-3 py-2.5 space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Artist name in your library
+            </label>
+            <Input
+              className="h-8 text-sm"
+              value={libraryArtist}
+              onChange={e => handleLibraryArtistChange(e.target.value)}
+              placeholder="e.g. משינה"
+            />
+            <p className="text-xs text-muted-foreground">
+              setlist.fm uses English names — change this if your library uses a different script (e.g. Hebrew, Japanese).
+            </p>
           </div>
 
           {/* Stats bar */}
@@ -434,11 +404,6 @@ export function SetlistImportPage() {
             )}
             {missingCount > 0 && (
               <span className="text-muted-foreground">{missingCount} not imported</span>
-            )}
-            {enriching && (
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Checking library…
-              </span>
             )}
             {importingCount > 0 && (
               <span className="text-blue-600 dark:text-blue-400">{importingCount} importing…</span>
@@ -480,7 +445,7 @@ export function SetlistImportPage() {
                     size="sm"
                     variant="outline"
                     className="h-7 shrink-0 text-xs"
-                    onClick={() => importSong(i, selectedSetlist.artist.name, state.song.name)}
+                    onClick={() => importSong(i, state.song.name)}
                     disabled={importingCount > 0}
                   >
                     <Plus className="h-3 w-3" /> Add
@@ -526,7 +491,7 @@ export function SetlistImportPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Will include {inLibraryCount} song{inLibraryCount === 1 ? '' : 's'} already in your library
+                Will include {inLibraryCount} song{inLibraryCount === 1 ? '' : 's'} from your library
               </p>
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
