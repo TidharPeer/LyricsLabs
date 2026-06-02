@@ -102,14 +102,19 @@ export function SongDetailPage() {
                 )}
               </div>
             ) : (
-              song.lyrics.map((line, i) => (
-                <div key={line.id} className="group flex items-baseline gap-3 py-0.5">
-                  <span className="text-xs text-muted-foreground w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {i + 1}
-                  </span>
-                  <p className="text-sm leading-relaxed text-foreground">{line.text}</p>
+              <>
+                <div className="flex items-center justify-between mb-2 pb-2 border-b text-xs text-muted-foreground">
+                  <span>{song.lyrics.length} lines</span>
                 </div>
-              ))
+                {song.lyrics.map((line, i) => (
+                  <div key={line.id} className="flex items-baseline gap-3 py-0.5">
+                    <span className="text-xs text-muted-foreground w-8 shrink-0">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-foreground">{line.text}</p>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </TabsContent>

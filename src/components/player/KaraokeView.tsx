@@ -85,13 +85,13 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   }, [activeLine])
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
       <div
         ref={containerRef}
         className="aspect-video w-full overflow-hidden rounded-lg bg-black"
       />
 
-      <div className="rounded-lg border bg-card p-4 overflow-y-auto max-h-[56vw] lg:max-h-none lg:h-[360px]">
+      <div className="rounded-lg border bg-card p-4 overflow-y-auto max-h-[56vw] lg:max-h-none lg:h-[45vh]">
         {!hasTimestamps ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <p className="text-sm text-muted-foreground text-center">

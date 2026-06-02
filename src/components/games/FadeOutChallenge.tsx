@@ -91,14 +91,17 @@ export function FadeOutChallenge({ song, onBack, onComplete, activeLine = -1 }: 
   }
 
   const roundLabels: Record<Visibility, string> = {
-    full: 'Full lyrics',
-    alternate: 'Every other line hidden',
-    'first-words': 'First words only',
-    blank: 'All hidden — recite!',
+    full:          'Round 1 — All lyrics visible. Read along.',
+    alternate:     'Round 2 — Half the lines are hidden.',
+    'first-words': 'Round 3 — Only the first words remain.',
+    blank:         'Round 4 — All hidden. Recite from memory!',
   }
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-center text-muted-foreground/80 italic">
+        Each round hides more lyrics — try to remember them as they disappear.
+      </p>
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{t('game.fadeout')}</span>
         <Badge variant="outline">

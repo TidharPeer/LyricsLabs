@@ -7,6 +7,11 @@ html {
   scrollbar-gutter: stable;
 }
 
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 @layer base {
   :root {
     /* Named color palette — static RGB values */

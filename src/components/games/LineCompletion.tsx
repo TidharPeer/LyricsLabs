@@ -132,6 +132,7 @@ export function LineCompletion({ song, onBack, onComplete, activeLine = -1 }: Pr
       <Progress value={((current) / lines.length) * 100} />
 
       <div className="rounded-lg border p-6 space-y-4" dir={lyricsDir(song.language)}>
+        <p className="text-xs text-muted-foreground">You see the beginning of a line — type the rest:</p>
         {/* Now-playing indicator — shows when background music is at this exact line */}
         {isCurrentLineNowPlaying && (
           <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--primary)' }}>
@@ -157,7 +158,7 @@ export function LineCompletion({ song, onBack, onComplete, activeLine = -1 }: Pr
 
         <Input
           className="text-base"
-          placeholder="Complete the line..."
+          placeholder="…type the rest of the line"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !revealed) checkAnswer() }}
