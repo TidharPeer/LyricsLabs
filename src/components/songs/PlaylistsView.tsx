@@ -101,35 +101,35 @@ export function PlaylistsView({ userId }: Props) {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {playlists.map(pl => (
             <Card
               key={pl.id}
-              className="cursor-pointer transition-colors hover:bg-muted/50 group"
+              className="cursor-pointer transition-colors hover:bg-muted/50 group min-w-0"
               onClick={() => setSelected(pl)}
             >
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <ListMusic className="h-5 w-5 text-primary" />
+              <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <ListMusic className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{pl.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground truncate">
                     {t('playlist.songCount', { count: pl.songCount ?? 0 })}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <Badge variant="outline" className="hidden sm:flex text-xs">
                     {t('playlist.songCount', { count: pl.songCount ?? 0 })}
                   </Badge>
                   {(pl.songCount ?? 0) > 0 && (
                     <Button
                       size="sm"
-                      className="gap-1.5"
+                      className="gap-1 sm:gap-1.5 px-2 sm:px-3"
                       onClick={e => { e.stopPropagation(); navigate(`/playlists/${pl.id}/play`) }}
                     >
                       <Play className="h-3.5 w-3.5" />
-                      Play
+                      <span className="hidden sm:inline">Play</span>
                     </Button>
                   )}
                   <button
