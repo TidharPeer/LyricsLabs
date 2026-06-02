@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { fetchSong, addStars, saveGameSessionRemote } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { CompactPlayer } from '@/components/player/CompactPlayer'
 import { FillInTheBlank } from '@/components/games/FillInTheBlank'
 import { FadeOutChallenge } from '@/components/games/FadeOutChallenge'
@@ -24,6 +25,7 @@ export function GamePage() {
   const [loading, setLoading] = useState(true)
   const [starsEarned, setStarsEarned] = useState(0)
   const [showStars, setShowStars] = useState(false)
+  const [showGuestNudge, setShowGuestNudge] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
 
   useEffect(() => {
@@ -50,6 +52,8 @@ export function GamePage() {
         starsEarned: stars,
       }, user.id)
       await refreshStats()
+    } else {
+      if (scoreToStars(score) > 0) setShowGuestNudge(true)
     }
   }, [user, refreshStats, song?.id, mode])
 
@@ -115,6 +119,23 @@ export function GamePage() {
 
       {showStars && (
         <StarsCounter earned={starsEarned} onDone={() => setShowStars(false)} />
+      )}
+
+      {showGuestNudge && (
+        <Dialog open onOpenChange={() => setShowGuestNudge(false)}>
+          <DialogContent className="max-w-sm text-center">
+            <DialogHeader>
+              <DialogTitle>Nice work!</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Sign in to save your stars and track your progress.
+            </p>
+            <div className="flex flex-col gap-2 mt-2">
+              <Button asChild><Link to="/auth">Sign In / Create Account</Link></Button>
+              <Button variant="ghost" onClick={() => setShowGuestNudge(false)}>Maybe later</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

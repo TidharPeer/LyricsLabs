@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Star, Flame, BookOpen, Mic2, Users } from 'lucide-react'
-import logoUrl from '@/assets/lyrics_labs_logo.svg'
+import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Mic2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
@@ -17,107 +15,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
 import type { Song } from '@/types'
 
-function DisclaimerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Disclaimer</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-          <p>
-            LyricsLabs is a personal, non-commercial project built for educational and entertainment purposes only. No fees are charged and no money is collected from users.
-          </p>
-          <p>
-            Song lyrics displayed on this site are the property of their respective copyright holders. This site does not claim ownership of any lyrics or music content.
-          </p>
-          <p>
-            By using this site, you acknowledge that the creator of LyricsLabs is not liable for any claims, damages, or losses of any kind arising from your use of this service. You agree not to hold the creator responsible for any content or functionality provided.
-          </p>
-          <p>
-            This site is provided "as is" without warranties of any kind. Use at your own discretion.
-          </p>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-
-function LandingPage() {
-  const [disclaimerOpen, setDisclaimerOpen] = useState(false)
-
-  const features = [
-    {
-      icon: <BookOpen className="h-6 w-6 text-indigo-400" />,
-      iconBg: 'bg-indigo-500/20',
-      title: 'Community Library',
-      description: 'Browse hundreds of songs added by the community, ready to learn.',
-    },
-    {
-      icon: <Music className="h-6 w-6 text-violet-400" />,
-      iconBg: 'bg-violet-500/20',
-      title: 'Karaoke Practice',
-      description: 'Practice lyrics word-by-word with our interactive karaoke-style player.',
-    },
-    {
-      icon: <Star className="h-6 w-6 text-amber-400" />,
-      iconBg: 'bg-amber-500/20',
-      title: 'Earn Stars',
-      description: 'Get rewarded with stars as you complete songs and improve your accuracy.',
-    },
-    {
-      icon: <Flame className="h-6 w-6 text-orange-400" />,
-      iconBg: 'bg-orange-500/20',
-      title: 'Daily Streaks',
-      description: 'Build a daily practice habit and keep your streak alive.',
-    },
-  ]
-
-  return (
-    <div className="flex flex-col items-center">
-      {/* Hero */}
-      <div className="flex flex-col items-center text-center py-16 gap-5 max-w-xl">
-        <img src={logoUrl} alt="LyricsLabs" className="h-20 w-20" />
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight text-white">LyricsLabs</h1>
-          <p className="mt-2 text-lg text-white/65">Master song lyrics through karaoke-style practice</p>
-        </div>
-        <p className="text-white/55">
-          Build your personal song library, practice lyrics interactively, earn stars, and keep a daily streak — all in one place.
-        </p>
-        <Button size="lg" asChild className="mt-2 px-8">
-          <Link to="/auth">Get Started — Sign In</Link>
-        </Button>
-      </div>
-
-      {/* Features */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-        {features.map((f) => (
-          <div key={f.title} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 flex flex-col gap-2">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${f.iconBg}`}>
-              {f.icon}
-            </div>
-            <h3 className="font-semibold text-white">{f.title}</h3>
-            <p className="text-sm text-white/55">{f.description}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-16 text-xs text-white/35">
-        <button
-          className="underline underline-offset-2 hover:text-white/65 transition-colors"
-          onClick={() => setDisclaimerOpen(true)}
-        >
-          Disclaimer
-        </button>
-      </div>
-
-      <DisclaimerDialog open={disclaimerOpen} onOpenChange={setDisclaimerOpen} />
-    </div>
-  )
-}
 
 type View = 'all' | 'mine' | 'artists' | string
 
@@ -127,11 +24,11 @@ let _fetchEpoch = 0
 let _songsCache: { key: string; songs: Song[] } | null = null
 
 function useSongs(view: View, query: string, userId: string | undefined) {
-  const cacheKey = userId ? `${view}|${query}|${userId}` : ''
+  const cacheKey = (view === 'mine' && !userId) ? '__noop__' : `${view}|${query}|${userId ?? 'guest'}`
   const cached = _songsCache?.key === cacheKey ? _songsCache.songs : null
 
   const [songs, setSongs] = useState<Song[]>(cached ?? [])
-  const [loading, setLoading] = useState(!cached && !!userId)
+  const [loading, setLoading] = useState(!cached && !(view === 'mine' && !userId))
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -144,7 +41,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   setErrorRef.current = setError
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return }
+    if (view === 'mine' && !userId) { setLoading(false); return }
 
     // Serve from cache on remount (e.g. navigation back)
     if (reloadToken === 0 && _songsCache?.key === cacheKey) {
@@ -170,7 +67,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
         const result = isSearch
           ? await searchSongs(query)
           : view === 'mine'
-            ? await fetchMySongs(userId)
+            ? await fetchMySongs(userId!)
             : await fetchSongs()
         if (_fetchEpoch !== myEpoch) return
         _songsCache = { key: cacheKey, songs: result }
@@ -226,7 +123,7 @@ export function HomePage() {
   const [query, setQuery] = useState('')
 
   // Artist tabs + artists grid both use all-songs data; only 'mine' is different
-  const fetchView: 'all' | 'mine' = view === 'mine' ? 'mine' : 'all'
+  const fetchView: 'all' | 'mine' = (view === 'mine' && !!user) ? 'mine' : 'all'
   // When browsing the artists grid, pass empty query so DB isn't queried (we filter client-side)
   const fetchQuery = view === 'artists' ? '' : query
   const { songs, setSongs, loading, error, setError, reload } = useSongs(fetchView, fetchQuery, user?.id)
@@ -339,10 +236,18 @@ export function HomePage() {
   }
 
   if (authLoading && !user) return null
-  if (!user) return <LandingPage />
 
   return (
     <div className="space-y-5">
+      {!user && (
+        <div className="rounded-xl border bg-muted/30 px-4 py-4 text-center space-y-2">
+          <p className="font-semibold">Welcome to LyricsLabs</p>
+          <p className="text-sm text-muted-foreground">
+            Browse the community library below. Sign in to earn stars, track streaks, and build playlists.
+          </p>
+          <Button size="sm" asChild><Link to="/auth">Sign In</Link></Button>
+        </div>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">
           {view === 'all' ? t('auth.allSongs')
