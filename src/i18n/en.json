@@ -101,7 +101,13 @@
     "good": "Good effort!",
     "keepPracticing": "Keep practicing!",
     "wordsCorrect": "{{correct}} / {{total}} words correct",
-    "linesCorrect": "{{correct}} / {{total}} lines correct"
+    "linesCorrect": "{{correct}} / {{total}} lines correct",
+    "backChain": "Back-Chain",
+    "backChainDesc": "Learn from the end — each round adds earlier lyrics to the front.",
+    "memoryBurst": "Memory Burst",
+    "memoryBurstDesc": "Read a line, then type it from memory with no hints.",
+    "gotIt": "Got it →",
+    "typeTheLine": "Type the line from memory…"
   },
   "languages": {
     "en": "English",

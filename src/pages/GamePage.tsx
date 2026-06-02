@@ -10,6 +10,8 @@ import { CompactPlayer } from '@/components/player/CompactPlayer'
 import { FillInTheBlank } from '@/components/games/FillInTheBlank'
 import { FadeOutChallenge } from '@/components/games/FadeOutChallenge'
 import { LineCompletion } from '@/components/games/LineCompletion'
+import { BackChain } from '@/components/games/BackChain'
+import { MemoryBurst } from '@/components/games/MemoryBurst'
 import { StarsCounter } from '@/components/profile/StarsCounter'
 import { useAuth } from '@/contexts/AuthContext'
 import { scoreToStars } from '@/types'
@@ -80,6 +82,8 @@ export function GamePage() {
     'fill-blank': t('game.fillBlank'),
     'fadeout': t('game.fadeout'),
     'line-completion': t('game.lineCompletion'),
+    'back-chain': t('game.backChain'),
+    'memory-burst': t('game.memoryBurst'),
   }
 
   return (
@@ -112,8 +116,14 @@ export function GamePage() {
       {mode === 'line-completion' && (
         <LineCompletion song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
       )}
+      {mode === 'back-chain' && (
+        <BackChain song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
+      )}
+      {mode === 'memory-burst' && (
+        <MemoryBurst song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
+      )}
 
-      {!['fill-blank', 'fadeout', 'line-completion'].includes(mode ?? '') && (
+      {!['fill-blank', 'fadeout', 'line-completion', 'back-chain', 'memory-burst'].includes(mode ?? '') && (
         <p className="text-muted-foreground text-center">{t('common.notFound')}</p>
       )}
 

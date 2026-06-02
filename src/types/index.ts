@@ -27,7 +27,7 @@ export interface GameSession {
   starsEarned?: number
 }
 
-export type GameMode = 'fill-blank' | 'fadeout' | 'line-completion'
+export type GameMode = 'fill-blank' | 'fadeout' | 'line-completion' | 'back-chain' | 'memory-burst'
 
 export interface UserStats {
   userId: string
