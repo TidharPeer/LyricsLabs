@@ -132,10 +132,10 @@ export function HomePage() {
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [editingSong, setEditingSong] = useState<Song | null>(null)
+  const [sortBy, setSortBy] = useState<'az' | 'recent'>('az')
   const [currentPage, setCurrentPage] = useState(1)
 
   const PAGE_SIZE = 20
-  const RECENT_MS = 5 * 60 * 1000
 
   const tabArtist = view.startsWith('artist:') ? view.slice(7) : null
 
@@ -174,6 +174,7 @@ export function HomePage() {
   useEffect(() => {
     setFilterArtist('')
     setFilterLanguage('')
+    setSortBy('az')
     setCurrentPage(1)
   }, [view, query])
 
@@ -205,20 +206,15 @@ export function HomePage() {
   const ALL = '__all__'
 
   const filteredSongs = useMemo(() => {
-    const now = Date.now()
     return [...songs]
       .filter(s => !tabArtist || s.artist === tabArtist)
       .filter(s => !filterArtist || filterArtist === ALL || s.artist === filterArtist)
       .filter(s => !filterLanguage || filterLanguage === ALL || s.language === filterLanguage)
       .sort((a, b) => {
-        const aNew = now - a.createdAt < RECENT_MS
-        const bNew = now - b.createdAt < RECENT_MS
-        if (aNew && !bNew) return -1
-        if (!aNew && bNew) return 1
-        if (aNew && bNew) return b.createdAt - a.createdAt
+        if (sortBy === 'recent') return b.createdAt - a.createdAt
         return a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title)
       })
-  }, [songs, tabArtist, filterArtist, filterLanguage, RECENT_MS])
+  }, [songs, tabArtist, filterArtist, filterLanguage, sortBy])
 
   const totalPages = Math.ceil(filteredSongs.length / PAGE_SIZE)
   const pagedSongs = useMemo(
@@ -275,7 +271,7 @@ export function HomePage() {
               </Link>
             </Button>
             <Button onClick={() => setSearchDialogOpen(true)}>
-              <Search className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
               {t('nav.addSong')}
             </Button>
           </div>
@@ -283,40 +279,46 @@ export function HomePage() {
       </div>
 
       {user && (
-        <Tabs value={view} onValueChange={switchView}>
-          {/* Scrollable tab bar — wraps horizontally on all screen sizes */}
-          <div className="overflow-x-auto pb-px">
-            <TabsList className="w-max flex-nowrap">
-              <TabsTrigger value="all" className="shrink-0 gap-1.5">
-                <Globe className="h-3.5 w-3.5" />
-                {t('auth.allSongs')}
-              </TabsTrigger>
-              <TabsTrigger value="mine" className="shrink-0 gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                {t('auth.mySongs')}
-              </TabsTrigger>
-              <TabsTrigger value="artists" className="shrink-0 gap-1.5">
-                <Users className="h-3.5 w-3.5" />
-                Artists
-              </TabsTrigger>
-              {artistTabs.map(artist => (
-                <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
-                  <Music className="h-3.5 w-3.5 shrink-0" />
-                  <span className="max-w-[8rem] truncate">{artist}</span>
-                  <span
-                    role="button"
-                    tabIndex={-1}
-                    onMouseDown={e => e.stopPropagation()}
-                    onClick={e => closeArtistTab(artist, e)}
-                    className="ml-0.5 rounded p-0.5 opacity-60 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/15"
-                  >
-                    <X className="h-3 w-3" />
-                  </span>
+        <div className="flex items-start gap-2">
+          <Tabs value={view} onValueChange={switchView} className="flex-1 min-w-0">
+            <div className="overflow-x-auto pb-px">
+              <TabsList className="w-max flex-nowrap">
+                <TabsTrigger value="all" className="shrink-0 gap-1.5">
+                  <Globe className="h-3.5 w-3.5" />
+                  {t('auth.allSongs')}
                 </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-        </Tabs>
+                <TabsTrigger value="mine" className="shrink-0 gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  {t('auth.mySongs')}
+                </TabsTrigger>
+                {artistTabs.map(artist => (
+                  <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
+                    <Music className="h-3.5 w-3.5 shrink-0" />
+                    <span className="max-w-[8rem] truncate">{artist}</span>
+                    <span
+                      role="button"
+                      tabIndex={-1}
+                      onMouseDown={e => e.stopPropagation()}
+                      onClick={e => closeArtistTab(artist, e)}
+                      className="ml-0.5 rounded p-0.5 opacity-60 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/15"
+                    >
+                      <X className="h-3 w-3" />
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+          <Button
+            variant={view === 'artists' ? 'secondary' : 'outline'}
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => switchView(view === 'artists' ? 'all' : 'artists')}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Browse Artists
+          </Button>
+        </div>
       )}
 
       {view !== 'artists' && (
@@ -373,6 +375,16 @@ export function HomePage() {
               </SelectContent>
             </Select>
           )}
+
+          <Select value={sortBy} onValueChange={v => setSortBy(v as 'az' | 'recent')}>
+            <SelectTrigger className="h-8 w-auto min-w-36 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="az">A–Z</SelectItem>
+              <SelectItem value="recent">Recently Added</SelectItem>
+            </SelectContent>
+          </Select>
 
           {hasActiveFilters && (
             <Button
