@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  overflow-x: hidden;
+}
+
 @layer base {
   :root {
     /* Named color palette — static RGB values */
