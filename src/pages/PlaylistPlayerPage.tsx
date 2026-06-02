@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2 } from 'lucide-react'
+import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { KaraokeView } from '@/components/player/KaraokeView'
@@ -24,6 +24,7 @@ export function PlaylistPlayerPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user, refreshStats } = useAuth()
+  const [searchParams] = useSearchParams()
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
@@ -36,12 +37,25 @@ export function PlaylistPlayerPage() {
 
   useEffect(() => {
     if (!id) return
+    const rawStart = Number(searchParams.get('start'))
+    const startIdx = Number.isFinite(rawStart) ? rawStart : 0
+    const startShuffled = searchParams.get('shuffle') === '1'
     Promise.all([fetchPlaylist(id), fetchPlaylistSongs(id)]).then(([pl, sl]) => {
       setPlaylist(pl)
       setSongs(sl)
+      const validStart = Math.max(0, Math.min(startIdx, Math.max(0, sl.length - 1)))
+      if (startShuffled && sl.length > 0) {
+        const newOrder = shuffled(sl.length)
+        const ci = newOrder.indexOf(validStart)
+        ;[newOrder[0], newOrder[ci]] = [newOrder[ci], newOrder[0]]
+        setOrder(newOrder)
+        setPos(0)
+      } else {
+        setPos(validStart)
+      }
       setLoading(false)
     })
-  }, [id])
+  }, [id, searchParams])
 
   // The resolved index into songs[] for the current position
   const currentIdx = order ? order[pos] : pos
@@ -125,6 +139,18 @@ export function PlaylistPlayerPage() {
           <p className="text-xs text-muted-foreground">{t('playlist.playlists')}</p>
           <h1 className="text-lg font-semibold truncate">{playlist.name}</h1>
         </div>
+        {currentSong && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={() => navigate(`/songs/${currentSong.id}`)}
+            title="Go to song"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Go to song</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -133,7 +159,7 @@ export function PlaylistPlayerPage() {
           title="Share playlist"
         >
           <Share2 className="h-4 w-4" />
-          Share
+          <span className="hidden sm:inline">Share</span>
         </Button>
         <Button
           variant={order ? 'default' : 'outline'}
@@ -143,7 +169,7 @@ export function PlaylistPlayerPage() {
           title={order ? 'Shuffle on — click to turn off' : 'Shuffle off — click to turn on'}
         >
           <Shuffle className="h-4 w-4" />
-          Shuffle
+          <span className="hidden sm:inline">Shuffle</span>
         </Button>
       </div>
 
@@ -198,11 +224,14 @@ export function PlaylistPlayerPage() {
             const song = songs[songIdx]
             const isActive = queuePos === pos
             return (
-              <button
+              <div
                 key={song.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setPos(queuePos)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setPos(queuePos) }}
                 className={cn(
-                  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent',
+                  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent cursor-pointer group/queue',
                   isActive && 'bg-primary/5'
                 )}
               >
@@ -223,7 +252,14 @@ export function PlaylistPlayerPage() {
                     Synced
                   </Badge>
                 )}
-              </button>
+                <button
+                  onClick={e => { e.stopPropagation(); navigate(`/songs/${song.id}`) }}
+                  className="flex sm:hidden group-hover/queue:flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0"
+                  title="Go to this song"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+              </div>
             )
           })}
         </div>

@@ -67,7 +67,7 @@ export function PlaylistsView({ userId }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('playlist.title')}</h1>

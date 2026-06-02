@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Search, Trash2, X, Plus, Loader2, Music2, Play, GripVertical } from 'lucide-react'
+import { Search, Trash2, X, Plus, Loader2, Music2, Play, GripVertical, Shuffle } from 'lucide-react'
 import {
   DndContext, closestCenter,
   KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -35,10 +35,12 @@ interface Props {
 
 interface SortableRowProps {
   song: Song
+  index: number
   onRemove: (id: string) => void
+  onNavigate: (index: number) => void
 }
 
-function SortableSongRow({ song, onRemove }: SortableRowProps) {
+function SortableSongRow({ song, index, onRemove, onNavigate }: SortableRowProps) {
   const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
 
@@ -46,11 +48,13 @@ function SortableSongRow({ song, onRemove }: SortableRowProps) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 px-5 py-3 hover:bg-accent/50 group/row ${isDragging ? 'opacity-50 bg-accent/30 z-10' : ''}`}
+      className={`flex items-center gap-3 px-5 py-3 hover:bg-accent/50 group/row cursor-pointer ${isDragging ? 'opacity-50 bg-accent/30 z-10' : ''}`}
+      onClick={() => onNavigate(index)}
     >
       <button
         {...attributes}
         {...listeners}
+        onClick={e => e.stopPropagation()}
         className="cursor-grab active:cursor-grabbing shrink-0 touch-none text-muted-foreground opacity-0 group-hover/row:opacity-100 transition-opacity"
         tabIndex={-1}
         aria-label="Drag to reorder"
@@ -69,7 +73,7 @@ function SortableSongRow({ song, onRemove }: SortableRowProps) {
         {t(`languages.${song.language}`, song.language)}
       </Badge>
       <button
-        onClick={() => onRemove(song.id)}
+        onClick={e => { e.stopPropagation(); onRemove(song.id) }}
         className="hidden group-hover/row:flex rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
         title={t('playlist.removeFromPlaylist')}
       >
@@ -79,10 +83,13 @@ function SortableSongRow({ song, onRemove }: SortableRowProps) {
   )
 }
 
-function ReadonlySongRow({ song }: { song: Song }) {
+function ReadonlySongRow({ song, index, onNavigate }: { song: Song; index: number; onNavigate: (index: number) => void }) {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center gap-3 px-5 py-3">
+    <div
+      className="flex items-center gap-3 px-5 py-3 hover:bg-accent/50 cursor-pointer"
+      onClick={() => onNavigate(index)}
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
         <Music2 className="h-4 w-4 text-primary" />
       </div>
@@ -103,6 +110,7 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
   const isOwner = !userId || userId === playlist.createdBy
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(false)
+  const [shuffle, setShuffle] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Song[]>([])
   const [searching, setSearching] = useState(false)
@@ -127,8 +135,16 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
       loadSongs()
       setQuery('')
       setShowSearch(false)
+      setShuffle(false)
     }
   }, [open, loadSongs])
+
+  function handleSongNavigate(index: number) {
+    onOpenChange(false)
+    const params = new URLSearchParams({ start: String(index) })
+    if (shuffle) params.set('shuffle', '1')
+    navigate(`/playlists/${playlist.id}/play?${params.toString()}`)
+  }
 
   const search = useCallback(async (q: string) => {
     setSearching(true)
@@ -177,17 +193,40 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
       <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 p-0">
         {/* Header */}
         <DialogHeader className="pl-5 pr-12 pt-5 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="truncate pr-4">{playlist.name}</DialogTitle>
-            <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="truncate">{playlist.name}</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('playlist.songCount', { count: songs.length })}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {songs.length > 0 && (
+                <Button
+                  variant={shuffle ? 'default' : 'outline'}
+                  size="sm"
+                  className="gap-1.5 h-8 text-xs"
+                  onClick={() => setShuffle(v => !v)}
+                  title={shuffle ? 'Shuffle on' : 'Shuffle off'}
+                >
+                  <Shuffle className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Shuffle</span>
+                </Button>
+              )}
               {songs.length > 0 && (
                 <Button
                   size="sm"
                   className="gap-1.5 h-8 text-xs"
-                  onClick={() => { onOpenChange(false); navigate(`/playlists/${playlist.id}/play`) }}
+                  onClick={() => {
+                    onOpenChange(false)
+                    const params = new URLSearchParams()
+                    if (shuffle) params.set('shuffle', '1')
+                    const qs = params.toString()
+                    navigate(`/playlists/${playlist.id}/play${qs ? `?${qs}` : ''}`)
+                  }}
                 >
                   <Play className="h-3.5 w-3.5" />
-                  Play
+                  <span className="hidden sm:inline">Play</span>
                 </Button>
               )}
               {isOwner && (
@@ -198,14 +237,11 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
                   onClick={() => setShowSearch(v => !v)}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  {t('playlist.addSongs')}
+                  <span className="hidden sm:inline">{t('playlist.addSongs')}</span>
                 </Button>
               )}
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {t('playlist.songCount', { count: songs.length })}
-          </p>
         </DialogHeader>
 
         {/* Scrollable body */}
@@ -223,16 +259,16 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} autoScroll>
               <SortableContext items={songs.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 <div className="divide-y">
-                  {songs.map(song => (
-                    <SortableSongRow key={song.id} song={song} onRemove={handleRemove} />
+                  {songs.map((song, i) => (
+                    <SortableSongRow key={song.id} song={song} index={i} onRemove={handleRemove} onNavigate={handleSongNavigate} />
                   ))}
                 </div>
               </SortableContext>
             </DndContext>
           ) : (
             <div className="divide-y">
-              {songs.map(song => (
-                <ReadonlySongRow key={song.id} song={song} />
+              {songs.map((song, i) => (
+                <ReadonlySongRow key={song.id} song={song} index={i} onNavigate={handleSongNavigate} />
               ))}
             </div>
           )}
