@@ -91,36 +91,41 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
         className="aspect-video w-full overflow-hidden rounded-lg bg-black"
       />
 
-      <div className="rounded-lg border bg-card p-4 overflow-y-auto max-h-[56vw] lg:max-h-none lg:h-[45vh]">
-        {!hasTimestamps ? (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <p className="text-sm text-muted-foreground text-center">
-              {t('songDetail.noTimestamps')}
+      {/* On lg+: aspect-[32/27] makes this column exactly the same height as the
+          video (3fr col @ 16/9 → 2fr col needs 32/27 to match). Content scrolls
+          inside an absolute inset-0 wrapper so overflow-y-auto works correctly. */}
+      <div className="rounded-lg border bg-card p-4 overflow-y-auto max-h-[56vw] lg:max-h-none lg:aspect-[32/27] lg:overflow-hidden lg:p-0 lg:relative">
+        <div className="lg:absolute lg:inset-0 lg:overflow-y-auto lg:p-4">
+          {!hasTimestamps ? (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <p className="text-sm text-muted-foreground text-center">
+                {t('songDetail.noTimestamps')}
+              </p>
+              {userId && (!song.createdBy || userId === song.createdBy) && (
+                <Button asChild variant="outline">
+                  <Link to={`/songs/${song.id}/timestamps`}>Add Timestamps</Link>
+                </Button>
+              )}
+            </div>
+          ) : !playerReady ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {t('common.loading')}
             </p>
-            {userId && (!song.createdBy || userId === song.createdBy) && (
-              <Button asChild variant="outline">
-                <Link to={`/songs/${song.id}/timestamps`}>Add Timestamps</Link>
-              </Button>
-            )}
-          </div>
-        ) : !playerReady ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            {t('common.loading')}
-          </p>
-        ) : (
-          <div className="space-y-1" dir={dir}>
-            {song.lyrics.map((line, i) => {
-              const isActive = i === activeLine
-              return isActive ? (
-                <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
-                  {line.text}
-                </ActiveLyricLine>
-              ) : (
-                <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
-              )
-            })}
-          </div>
-        )}
+          ) : (
+            <div className="space-y-1" dir={dir}>
+              {song.lyrics.map((line, i) => {
+                const isActive = i === activeLine
+                return isActive ? (
+                  <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
+                    {line.text}
+                  </ActiveLyricLine>
+                ) : (
+                  <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
