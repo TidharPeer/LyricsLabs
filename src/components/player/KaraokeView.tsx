@@ -14,9 +14,10 @@ interface Props {
   userId?: string
   onStarEarned?: () => void
   onEnded?: () => void
+  autoplay?: boolean
 }
 
-export function KaraokeView({ song, userId, onStarEarned, onEnded }: Props) {
+export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: Props) {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
   const [playerReady, setPlayerReady] = useState(false)
@@ -52,6 +53,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded }: Props) {
         events: {
           onReady: () => {
             setPlayerReady(true)
+            if (autoplay) playerRef.current?.playVideo()
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
               setCurrentTime(t)

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink } from 'lucide-react'
@@ -34,6 +34,8 @@ export function PlaylistPlayerPage() {
   const [pos, setPos] = useState(0)
   // null = in-order; array = shuffled indices into songs[]
   const [order, setOrder] = useState<number[] | null>(null)
+  // true after any navigation so the next KaraokeView autoplays
+  const autoplayRef = useRef(false)
 
   useEffect(() => {
     if (!id) return
@@ -65,10 +67,12 @@ export function PlaylistPlayerPage() {
   const canNext = pos < songs.length - 1
 
   const goNext = useCallback(() => {
+    autoplayRef.current = true
     setPos(p => Math.min(songs.length - 1, p + 1))
   }, [songs.length])
 
   const goPrev = useCallback(() => {
+    autoplayRef.current = true
     setPos(p => Math.max(0, p - 1))
   }, [])
 
@@ -207,6 +211,7 @@ export function PlaylistPlayerPage() {
           userId={user?.id}
           onStarEarned={handleStarEarned}
           onEnded={canNext ? goNext : undefined}
+          autoplay={autoplayRef.current}
         />
       )}
 
@@ -228,8 +233,8 @@ export function PlaylistPlayerPage() {
                 key={song.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setPos(queuePos)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setPos(queuePos) }}
+                onClick={() => { autoplayRef.current = true; setPos(queuePos) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { autoplayRef.current = true; setPos(queuePos) } }}
                 className={cn(
                   'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent cursor-pointer group/queue',
                   isActive && 'bg-primary/5'
