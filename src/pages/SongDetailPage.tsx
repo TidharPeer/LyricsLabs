@@ -114,7 +114,7 @@ export function SongDetailPage() {
           <KaraokeView song={song} userId={user?.id} onStarEarned={handleStarEarned} />
         </TabsContent>
 
-        <TabsContent value="lyrics" className="mt-4">
+        <TabsContent value="lyrics" className="mt-4 space-y-3">
           <div className="rounded-lg border p-4 space-y-0.5 max-h-[500px] overflow-y-auto" dir={lyricsDir(song.language)}>
             {song.lyrics.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-8">
@@ -141,6 +141,16 @@ export function SongDetailPage() {
               </>
             )}
           </div>
+
+          {/* Prompt to add timestamps when lyrics exist but aren't synced */}
+          {song.lyrics.length > 0 && !hasTimestamps && user && (
+            <Button variant="outline" asChild className="w-full sm:w-auto gap-1.5">
+              <Link to={`/songs/${song.id}/timestamps`}>
+                <Clock className="h-4 w-4" />
+                Add Timestamps for Karaoke
+              </Link>
+            </Button>
+          )}
         </TabsContent>
 
         <TabsContent value="practice" className="mt-4">
