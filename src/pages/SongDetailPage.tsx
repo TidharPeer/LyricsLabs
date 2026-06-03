@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Edit, Clock, Gamepad2 } from 'lucide-react'
+import { ArrowLeft, Edit, Clock, Gamepad2, Share2 } from 'lucide-react'
 import { fetchSong } from '@/lib/db'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
@@ -64,6 +64,21 @@ export function SongDetailPage() {
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const shareUrl = `${window.location.origin}/api/song?id=${song.id}`
+              if (navigator.share) {
+                navigator.share({ title: `${song.title} — ${song.artist}`, url: shareUrl }).catch(() => {})
+              } else {
+                navigator.clipboard.writeText(shareUrl).catch(() => {})
+              }
+            }}
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Share</span>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/songs/${song.id}/edit`}>
               <Edit className="h-3.5 w-3.5" />

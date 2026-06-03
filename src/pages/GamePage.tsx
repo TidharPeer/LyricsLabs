@@ -38,7 +38,7 @@ export function GamePage() {
   const activeLine = song ? findActiveLine(song.lyrics, currentTime) : -1
 
   const handleGameComplete = useCallback(async (score: number, sessionId: string) => {
-    const stars = scoreToStars(score)
+    const stars = Math.max(1, scoreToStars(score)) // always at least 1 star for completing
     if (user) {
       if (stars > 0) {
         await addStars(user.id, stars)
