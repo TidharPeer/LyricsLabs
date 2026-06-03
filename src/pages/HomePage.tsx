@@ -123,7 +123,8 @@ export function HomePage() {
     catch { return [] }
   })
 
-  const [showHero, setShowHero] = useState(() => !localStorage.getItem('lyricsLabsOnboarded'))
+  // Per-user dismiss state (so a new user on a shared device always sees the hero)
+  const [heroDismissed, setHeroDismissed] = useState(false)
   // Logged-out users always see the full hero; this tracks a within-session dismiss for them
   const [sessionDismissed, setSessionDismissed] = useState(false)
   const [query, setQuery] = useState('')
@@ -137,13 +138,18 @@ export function HomePage() {
     return () => { if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current) }
   }, [query])
 
-  // Logged-in: collapse based on onboarding flag. Logged-out: always show full hero (key CTA surface)
+  // Per-user onboarding flag — keyed by userId so a new user never inherits another user's dismissed state
+  const showHero = !heroDismissed && (user
+    ? !localStorage.getItem(`lyricsLabsOnboarded:${user.id}`)
+    : true)
+
+  // Logged-in: collapse based on per-user flag. Logged-out: always show full hero (key CTA surface)
   const heroCollapsed = (user ? !showHero : sessionDismissed) || searchActive
 
   function dismissHero() {
     if (user) {
-      localStorage.setItem('lyricsLabsOnboarded', '1')
-      setShowHero(false)
+      localStorage.setItem(`lyricsLabsOnboarded:${user.id}`, '1')
+      setHeroDismissed(true)
     } else {
       setSessionDismissed(true)
     }
