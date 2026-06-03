@@ -20,7 +20,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
 
   return (
     <Link to={`/songs/${song.id}`} className="group block">
-      <Card className="transition-colors hover:bg-muted/50 cursor-pointer border-l-2 border-l-indigo-500/30 hover:border-l-indigo-500/70">
+      <Card className="transition-colors hover:bg-muted/50 cursor-pointer border-l-2 border-l-indigo-500/30 hover:border-l-indigo-500/70 overflow-hidden">
         <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
           {/* Left icon: Music note → Play on hover */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -52,7 +52,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
             </Badge>
 
             {hasSynced ? (
-              <CheckCircle2 className="hidden sm:block h-4 w-4 shrink-0 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
             ) : hasLyrics ? (
               <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                 <FileText className="h-3 w-3" />
