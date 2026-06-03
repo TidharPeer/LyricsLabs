@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
   scrollbar-gutter: stable;
 }
 
 body {
   max-width: 100vw;
   width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @layer base {
