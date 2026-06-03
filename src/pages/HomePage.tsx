@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Mic2, Users } from 'lucide-react'
+import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Mic2, Users, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -336,6 +336,10 @@ export function HomePage() {
           <Tabs value={view} onValueChange={switchView} className="flex-1 min-w-0">
             <div className="overflow-x-auto pb-px">
               <TabsList className="w-max flex-nowrap">
+                <TabsTrigger value="home" className="shrink-0 gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Recently Played
+                </TabsTrigger>
                 <TabsTrigger value="all" className="shrink-0 gap-1.5">
                   <Globe className="h-3.5 w-3.5" />
                   {t('auth.allSongs')}

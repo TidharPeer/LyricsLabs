@@ -49,12 +49,10 @@ export async function fetchSongsByIds(ids: string[]): Promise<Song[]> {
   return ids.map(id => map.get(id)).filter(Boolean) as Song[]
 }
 
-export async function fetchRecentSongs(limit = 6): Promise<Song[]> {
-  const { data, error } = await supabase
-    .from('songs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit)
+export async function fetchRecentSongs(limit = 6, language?: string): Promise<Song[]> {
+  let q = supabase.from('songs').select('*').order('created_at', { ascending: false }).limit(limit)
+  if (language) q = q.eq('language', language)
+  const { data, error } = await q
   if (error || !data) return []
   return data.map(rowToSong)
 }

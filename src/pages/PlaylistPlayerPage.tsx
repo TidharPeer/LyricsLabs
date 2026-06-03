@@ -65,6 +65,11 @@ export function PlaylistPlayerPage() {
   const currentIdx = order ? order[pos] : pos
   const currentSong: Song | null = songs[currentIdx] ?? null
 
+  // Track each song played inside a playlist as recently played
+  useEffect(() => {
+    if (currentSong && user) addRecentSong(user.id, currentSong.id)
+  }, [currentSong?.id, user?.id])
+
   const canPrev = pos > 0
   const canNext = pos < songs.length - 1
 

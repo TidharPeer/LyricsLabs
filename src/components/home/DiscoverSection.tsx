@@ -7,7 +7,7 @@ export function DiscoverSection() {
   const [songs, setSongs] = useState<Song[] | null>(null)
 
   useEffect(() => {
-    fetchRecentSongs(6).then(setSongs).catch(() => setSongs([]))
+    fetchRecentSongs(6, 'en').then(setSongs).catch(() => setSongs([]))
   }, [])
 
   if (songs === null) {
