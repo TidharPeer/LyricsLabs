@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { fetchSongs, saveSongRemote, addStars, createPlaylist, addSongToPlaylist } from '@/lib/db'
 import { fetchLyrics } from '@/lib/fetchSongData'
 import { searchYouTubeVideo, searchYouTubeVideoIds } from '@/lib/youtubeDataApi'
@@ -165,6 +166,7 @@ export function SetlistImportPage() {
 
   const [searching, setSearching] = useState(false)
   const [loadingSetlists, setLoadingSetlists] = useState(false)
+  const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [playlistName, setPlaylistName] = useState('')
@@ -220,11 +222,15 @@ export function SetlistImportPage() {
     if (!artistQuery.trim()) return
     setSearching(true)
     setError(null)
+    setNotFound(false)
     setArtists([])
     try {
       const results = await searchSetlistArtists(artistQuery.trim())
-      if (results.length === 0) setError('No artists found. Try a different name.')
-      setArtists(results)
+      if (results.length === 0) {
+        setNotFound(true)
+      } else {
+        setArtists(results)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -244,6 +250,7 @@ export function SetlistImportPage() {
     setCreatedPlaylistId(null)
     setLibraryArtist('')
     setEnriching(false)
+    setNotFound(false)
     setError(null)
   }
 
@@ -461,10 +468,30 @@ export function SetlistImportPage() {
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
               </Button>
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {/* Artist not found — friendly inline hint */}
+            {notFound && (
+              <p className="text-sm text-muted-foreground">
+                🎤 Oops, we couldn't find that artist. Try a different spelling or their full name — e.g. <em>"The Beatles"</em> instead of <em>"Beatles"</em>.
+              </p>
+            )}
+
+            {/* Unexpected error — quota, network, etc. */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Something went wrong</AlertTitle>
+                <AlertDescription>
+                  We hit an unexpected error — this is likely a temporary service limit.
+                  If it keeps happening, please contact us at{' '}
+                  <a href="mailto:support@lyricslabs.com" className="underline underline-offset-2">
+                    support@lyricslabs.com
+                  </a>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* How it works — shown until the first search */}
-            {artists.length === 0 && !error && !searching && (
+            {artists.length === 0 && !notFound && !error && !searching && (
               <div className="space-y-3 pt-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">How it works</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -535,7 +562,17 @@ export function SetlistImportPage() {
               <Loader2 className="h-4 w-4 animate-spin" /> Loading concerts…
             </div>
           ) : error ? (
-            <p className="text-sm text-destructive">{error}</p>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>
+                We couldn't load concerts for this artist — this might be a temporary service limit.
+                Please try again or contact us at{' '}
+                <a href="mailto:support@lyricslabs.com" className="underline underline-offset-2">
+                  support@lyricslabs.com
+                </a>
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-2">
               {setlists.map(setlist => (
