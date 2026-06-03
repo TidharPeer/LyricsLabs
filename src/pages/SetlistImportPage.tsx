@@ -232,7 +232,12 @@ export function SetlistImportPage() {
         setArtists(results)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed')
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.includes('404')) {
+        setNotFound(true)
+      } else {
+        setError(msg || 'Search failed')
+      }
     } finally {
       setSearching(false)
     }
