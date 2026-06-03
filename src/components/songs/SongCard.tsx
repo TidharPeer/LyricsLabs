@@ -30,7 +30,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
 
           {/* Title + inline edit icon */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               <p className="font-medium truncate">{song.title}</p>
               {onEdit && (
                 <button
@@ -52,12 +52,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
             </Badge>
 
             {hasSynced ? (
-              <Badge
-                variant="outline"
-                className="hidden sm:flex gap-1 text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-950/30 dark:text-green-400"
-              >
-                <CheckCircle2 className="h-3 w-3" /> Synced
-              </Badge>
+              <CheckCircle2 className="hidden sm:block h-4 w-4 shrink-0 text-green-500" />
             ) : hasLyrics ? (
               <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                 <FileText className="h-3 w-3" />

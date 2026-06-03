@@ -369,7 +369,7 @@ export function HomePage() {
                 <span className="hidden sm:inline">Browse Artists</span>
               </TabsTrigger>
               {artistTabs.map(artist => (
-                <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
+                <TabsTrigger key={artist} value={`artist:${artist}`} className="hidden sm:inline-flex shrink-0 gap-1 pl-3 pr-1.5">
                   <Music className="h-3.5 w-3.5 shrink-0" />
                   <span className="max-w-[8rem] truncate">{artist}</span>
                   <span
