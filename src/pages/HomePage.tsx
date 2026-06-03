@@ -147,7 +147,7 @@ export function HomePage() {
 
   // Per-user onboarding flag — keyed by userId so a new user never inherits another user's dismissed state
   const showHero = !heroDismissed && (user
-    ? !localStorage.getItem(`lyricsLabsOnboarded:${user.id}`)
+    ? !localStorage.getItem(`lyricsLabsOnboarded:${user.id}`) && !localStorage.getItem('lyricsLabsOnboarded')
     : true)
 
   // Show the HeroSection only for onboarding users OR after a returning user has typed-then-cleared
