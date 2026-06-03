@@ -53,6 +53,15 @@ export function Layout() {
         </div>
       </header>
       <main className="container py-6"><Outlet /></main>
+      <footer className="border-t mt-8 py-4">
+        <div className="container flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} LyricsLabs</span>
+          <span className="hidden sm:inline">·</span>
+          <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+        </div>
+      </footer>
     </div>
   )
 }
