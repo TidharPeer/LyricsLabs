@@ -504,7 +504,7 @@ export function HomePage() {
         </div>
       ) : showBrowse && view !== 'artists' ? (
         <>
-          <div className="grid gap-2">
+          <div className="flex flex-col min-w-0 gap-2">
             {pagedSongs.map((song) => (
               <SongCard
                 key={song.id}
