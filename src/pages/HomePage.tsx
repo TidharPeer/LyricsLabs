@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { HeroSection } from '@/components/home/HeroSection'
+import { RecentlyPlayed } from '@/components/home/RecentlyPlayed'
+import { DiscoverSection } from '@/components/home/DiscoverSection'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
@@ -16,7 +18,7 @@ import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/d
 import type { Song } from '@/types'
 
 
-type View = 'all' | 'mine' | 'artists' | string
+type View = 'home' | 'all' | 'mine' | 'artists' | string
 
 // Module-level: survives StrictMode remounts so we can deduplicate in-flight fetches
 let _pendingKey = ''
@@ -24,11 +26,13 @@ let _fetchEpoch = 0
 let _songsCache: { key: string; songs: Song[] } | null = null
 
 function useSongs(view: View, query: string, userId: string | undefined) {
-  const cacheKey = (view === 'mine' && !userId) ? '__noop__' : `${view}|${query}|${userId ?? 'guest'}`
+  // 'home' with no active search = noop (recently played / discover shows instead)
+  const isNoop = (view === 'mine' && !userId) || (view === 'home' && query.length < 2)
+  const cacheKey = isNoop ? '__noop__' : `${view}|${query}|${userId ?? 'guest'}`
   const cached = _songsCache?.key === cacheKey ? _songsCache.songs : null
 
   const [songs, setSongs] = useState<Song[]>(cached ?? [])
-  const [loading, setLoading] = useState(!cached && !(view === 'mine' && !userId))
+  const [loading, setLoading] = useState(!cached && !isNoop)
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -41,7 +45,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
   setErrorRef.current = setError
 
   useEffect(() => {
-    if (view === 'mine' && !userId) { setLoading(false); return }
+    if (isNoop) { setLoading(false); return }
 
     // Serve from cache on remount (e.g. navigation back)
     if (reloadToken === 0 && _songsCache?.key === cacheKey) {
@@ -88,7 +92,7 @@ function useSongs(view: View, query: string, userId: string | undefined) {
       // and update the component even after a StrictMode unmount/remount cycle.
       if (isSearch) clearTimeout(timer)
     }
-  }, [view, query, userId, reloadToken, cacheKey])
+  }, [view, query, userId, reloadToken, cacheKey, isNoop])
 
   const reload = useCallback(() => {
     _songsCache = null
@@ -103,16 +107,14 @@ export function HomePage() {
   const { t } = useTranslation()
   const { user, loading: authLoading } = useAuth()
 
-
-
   const [view, setView] = useState<View>(() => {
-    const saved = sessionStorage.getItem('homeView') ?? 'all'
-    if (saved === 'mine' || saved === 'artists') return saved
+    const saved = sessionStorage.getItem('homeView') ?? 'home'
+    if (saved === 'mine' || saved === 'artists' || saved === 'all' || saved === 'home') return saved
     if (saved.startsWith('artist:')) {
       const tabs: string[] = JSON.parse(sessionStorage.getItem('artistTabs') ?? '[]')
       if (tabs.includes(saved.slice(7))) return saved
     }
-    return 'all'
+    return 'home'
   })
 
   const [artistTabs, setArtistTabs] = useState<string[]>(() => {
@@ -139,11 +141,9 @@ export function HomePage() {
     setShowHero(false)
   }
 
-  // Artist tabs + artists grid both use all-songs data; only 'mine' is different
-  const fetchView: 'all' | 'mine' = (view === 'mine' && !!user) ? 'mine' : 'all'
   // When browsing the artists grid, pass empty query so DB isn't queried (we filter client-side)
   const fetchQuery = view === 'artists' ? '' : query
-  const { songs, setSongs, loading, error, setError, reload } = useSongs(fetchView, fetchQuery, user?.id)
+  const { songs, setSongs, loading, error, setError, reload } = useSongs(view, fetchQuery, user?.id)
   const [filterArtist, setFilterArtist] = useState('')
   const [filterLanguage, setFilterLanguage] = useState('')
   const [bandDialogOpen, setBandDialogOpen] = useState(false)
@@ -153,6 +153,9 @@ export function HomePage() {
   const [currentPage, setCurrentPage] = useState(1)
 
   const PAGE_SIZE = 20
+
+  // When true: show the songs list / search results. When false: show recently played / discover.
+  const showBrowse = view !== 'home' || query.length >= 2
 
   const tabArtist = view.startsWith('artist:') ? view.slice(7) : null
 
@@ -261,40 +264,63 @@ export function HomePage() {
         placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
       />
 
-      {heroCollapsed && (
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">
-          {view === 'all' ? t('auth.allSongs')
-            : view === 'mine' ? t('auth.mySongs')
-            : view === 'artists' ? 'Artists'
-            : tabArtist ?? t('auth.allSongs')}
-          {!loading && view !== 'artists' && (
-            <span className="ml-1.5 text-lg font-normal text-muted-foreground">
-              ({fmtCount(filteredSongs.length)})
-            </span>
-          )}
-        </h1>
-        {user && (
-          <div className="flex gap-2 shrink-0">
-            <Button variant="outline" asChild>
-              <Link to="/import-concert">
-                <Mic2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Import Concert</span>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/songs/new">
+      {heroCollapsed && showBrowse && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold">
+            {view === 'all' ? t('auth.allSongs')
+              : view === 'mine' ? t('auth.mySongs')
+              : view === 'artists' ? 'Artists'
+              : view === 'home' ? 'Search Results'
+              : tabArtist ?? t('auth.allSongs')}
+            {!loading && view !== 'artists' && (
+              <span className="ml-1.5 text-lg font-normal text-muted-foreground">
+                ({fmtCount(filteredSongs.length)})
+              </span>
+            )}
+          </h1>
+          {user && (
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" asChild>
+                <Link to="/import-concert">
+                  <Mic2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Import Concert</span>
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/songs/new">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add via URL</span>
+                </Link>
+              </Button>
+              <Button onClick={() => setSearchDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add via URL</span>
-              </Link>
-            </Button>
-            <Button onClick={() => setSearchDialogOpen(true)}>
+                {t('nav.addSong')}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add-song buttons for home view (no h1 title, just the action buttons) */}
+      {heroCollapsed && !showBrowse && user && (
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/import-concert">
+              <Mic2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Import Concert</span>
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/songs/new">
               <Plus className="h-4 w-4" />
-              {t('nav.addSong')}
-            </Button>
-          </div>
-        )}
-      </div>
+              <span className="hidden sm:inline">Add via URL</span>
+            </Link>
+          </Button>
+          <Button onClick={() => setSearchDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t('nav.addSong')}
+          </Button>
+        </div>
       )}
 
       {user && (
@@ -332,7 +358,7 @@ export function HomePage() {
             variant={view === 'artists' ? 'secondary' : 'outline'}
             size="sm"
             className="shrink-0 gap-1.5"
-            onClick={() => switchView(view === 'artists' ? 'all' : 'artists')}
+            onClick={() => switchView(view === 'artists' ? 'home' : 'artists')}
           >
             <Users className="h-3.5 w-3.5" />
             Browse Artists
@@ -340,9 +366,15 @@ export function HomePage() {
         </div>
       )}
 
+      {/* Recently played / discover — shown on home view with no active search */}
+      {!showBrowse && (
+        user
+          ? <RecentlyPlayed userId={user.id} fallback={<DiscoverSection />} />
+          : <DiscoverSection />
+      )}
 
-      {/* Filters — hidden for artists grid and artist tabs (artist already implicit) */}
-      {!loading && songs.length > 1 && !query && view !== 'artists' && (
+      {/* Filters — hidden for artists grid, artist tabs, and home view */}
+      {showBrowse && !loading && songs.length > 1 && !query && view !== 'artists' && (
         <div className="flex flex-wrap items-center gap-2">
           {uniqueArtists.length > 1 && !tabArtist && (
             <Select value={filterArtist || ALL} onValueChange={v => setFilterArtist(v === ALL ? '' : v)}>
@@ -405,19 +437,19 @@ export function HomePage() {
           : <ArtistsGrid songs={songs} query={query} onArtistClick={openArtistTab} />
       )}
 
-      {view !== 'artists' && error && (
+      {showBrowse && view !== 'artists' && error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500 break-all">
           Could not load songs: {error}
         </div>
       )}
 
-      {view !== 'artists' && loading && songs.length === 0 ? (
+      {showBrowse && view !== 'artists' && loading && songs.length === 0 ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl border bg-muted/30 animate-pulse" />
           ))}
         </div>
-      ) : view !== 'artists' && filteredSongs.length === 0 && !error ? (
+      ) : showBrowse && view !== 'artists' && filteredSongs.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
           <p className="text-muted-foreground">
             {query ? `No songs found for "${query}"` : hasActiveFilters ? 'No songs match the selected filters' : t('home.empty')}
@@ -447,7 +479,7 @@ export function HomePage() {
             </Button>
           )}
         </div>
-      ) : view !== 'artists' ? (
+      ) : showBrowse && view !== 'artists' ? (
         <>
           <div className="grid gap-2">
             {pagedSongs.map((song) => (

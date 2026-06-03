@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Clock, Gamepad2, Share2 } from 'lucide-react'
 import { fetchSong } from '@/lib/db'
+import { addRecentSong } from '@/lib/storage'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -23,7 +24,11 @@ export function SongDetailPage() {
 
   useEffect(() => {
     if (!id) { setLoading(false); return }
-    fetchSong(id).then(s => { setSong(s ?? null); setLoading(false) })
+    fetchSong(id).then(s => {
+      setSong(s ?? null)
+      setLoading(false)
+      if (s && user) addRecentSong(user.id, s.id)
+    })
   }, [id])
 
   const handleStarEarned = useCallback(() => { refreshStats() }, [refreshStats])

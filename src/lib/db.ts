@@ -40,6 +40,25 @@ export async function fetchSong(id: string): Promise<Song | undefined> {
   return rowToSong(data)
 }
 
+export async function fetchSongsByIds(ids: string[]): Promise<Song[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await supabase.from('songs').select('*').in('id', ids)
+  if (error || !data) return []
+  // Preserve the input order (most-recent first)
+  const map = new Map(data.map(r => [r.id, rowToSong(r)]))
+  return ids.map(id => map.get(id)).filter(Boolean) as Song[]
+}
+
+export async function fetchRecentSongs(limit = 6): Promise<Song[]> {
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error || !data) return []
+  return data.map(rowToSong)
+}
+
 export async function searchSongs(query: string): Promise<Song[]> {
   if (!query.trim()) return fetchSongs()
 

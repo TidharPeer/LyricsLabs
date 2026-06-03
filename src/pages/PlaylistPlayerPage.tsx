@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchPlaylist, fetchPlaylistSongs } from '@/lib/db'
+import { setRecentPlaylist } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
 
@@ -45,6 +46,7 @@ export function PlaylistPlayerPage() {
     Promise.all([fetchPlaylist(id), fetchPlaylistSongs(id)]).then(([pl, sl]) => {
       setPlaylist(pl)
       setSongs(sl)
+      if (pl && user) setRecentPlaylist(user.id, pl.id)
       const validStart = Math.max(0, Math.min(startIdx, Math.max(0, sl.length - 1)))
       if (startShuffled && sl.length > 0) {
         const newOrder = shuffled(sl.length)
