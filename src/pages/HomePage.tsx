@@ -345,6 +345,7 @@ export function HomePage() {
       )}
 
       {user && (
+        <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-background/95 backdrop-blur border-b pb-2 pt-1">
         <Tabs value={view} onValueChange={switchView}>
           <div className="overflow-x-auto pb-px">
             <TabsList className="w-max flex-nowrap">
@@ -386,6 +387,7 @@ export function HomePage() {
             </TabsList>
           </div>
         </Tabs>
+        </div>
       )}
 
       {/* Recently played + discover — shown on home view with no active search */}
