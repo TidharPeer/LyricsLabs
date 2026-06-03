@@ -79,18 +79,22 @@ export function SongDetailPage() {
             <Share2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Share</span>
           </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/songs/${song.id}/edit`}>
-              <Edit className="h-3.5 w-3.5" />
-              {t('common.edit')}
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/songs/${song.id}/timestamps`}>
-              <Clock className="h-3.5 w-3.5" />
-              {t('songDetail.editTimestamps')}
-            </Link>
-          </Button>
+          {user && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/songs/${song.id}/edit`}>
+                <Edit className="h-3.5 w-3.5" />
+                {t('common.edit')}
+              </Link>
+            </Button>
+          )}
+          {user && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/songs/${song.id}/timestamps`}>
+                <Clock className="h-3.5 w-3.5" />
+                {t('songDetail.editTimestamps')}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -110,7 +114,7 @@ export function SongDetailPage() {
             {song.lyrics.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-8">
                 <p className="text-muted-foreground text-sm">{t('song.noLyrics')}</p>
-                {user && (!song.createdBy || user.id === song.createdBy) && (
+                {user && (
                   <Button asChild>
                     <Link to={`/songs/${song.id}/edit`}>Add Lyrics</Link>
                   </Button>

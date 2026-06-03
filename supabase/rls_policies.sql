@@ -15,14 +15,15 @@ ON songs FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = created_by);
 
--- Users can only edit their own songs
-CREATE POLICY "users can update own songs"
+-- Any authenticated user can update any song
+CREATE POLICY "authenticated users can update songs"
 ON songs FOR UPDATE
 TO authenticated
-USING (auth.uid() = created_by);
+USING (true)
+WITH CHECK (true);
 
--- Users can only delete their own songs
-CREATE POLICY "users can delete own songs"
+-- Any authenticated user can delete any song
+CREATE POLICY "authenticated users can delete songs"
 ON songs FOR DELETE
 TO authenticated
-USING (auth.uid() = created_by);
+USING (true);
