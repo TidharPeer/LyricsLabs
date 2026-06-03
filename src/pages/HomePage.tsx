@@ -109,7 +109,8 @@ export function HomePage() {
 
   const [view, setView] = useState<View>(() => {
     const saved = sessionStorage.getItem('homeView') ?? 'home'
-    if (saved === 'mine' || saved === 'artists' || saved === 'all' || saved === 'home') return saved
+    // 'all' intentionally not restored — recently played IS the home, 'all' is explicit browsing
+    if (saved === 'mine' || saved === 'artists' || saved === 'home') return saved
     if (saved.startsWith('artist:')) {
       const tabs: string[] = JSON.parse(sessionStorage.getItem('artistTabs') ?? '[]')
       if (tabs.includes(saved.slice(7))) return saved
@@ -123,6 +124,8 @@ export function HomePage() {
   })
 
   const [showHero, setShowHero] = useState(() => !localStorage.getItem('lyricsLabsOnboarded'))
+  // Logged-out users always see the full hero; this tracks a within-session dismiss for them
+  const [sessionDismissed, setSessionDismissed] = useState(false)
   const [query, setQuery] = useState('')
   const [searchActive, setSearchActive] = useState(false)
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,11 +137,16 @@ export function HomePage() {
     return () => { if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current) }
   }, [query])
 
-  const heroCollapsed = !showHero || searchActive
+  // Logged-in: collapse based on onboarding flag. Logged-out: always show full hero (key CTA surface)
+  const heroCollapsed = (user ? !showHero : sessionDismissed) || searchActive
 
   function dismissHero() {
-    localStorage.setItem('lyricsLabsOnboarded', '1')
-    setShowHero(false)
+    if (user) {
+      localStorage.setItem('lyricsLabsOnboarded', '1')
+      setShowHero(false)
+    } else {
+      setSessionDismissed(true)
+    }
   }
 
   // When browsing the artists grid, pass empty query so DB isn't queried (we filter client-side)
