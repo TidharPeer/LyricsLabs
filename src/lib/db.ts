@@ -217,7 +217,7 @@ export async function getRecentSessions(userId: string, limit = 20): Promise<Gam
 // ─── Referrals ────────────────────────────────────────────────────────────────
 
 export function getReferralLink(userId: string): string {
-  const base = import.meta.env.VITE_APP_URL ?? window.location.origin
+  const base = import.meta.env.VITE_APP_URL ?? 'https://lyricslabs.com'
   return `${base}?ref=${userId.slice(0, 8)}`
 }
 

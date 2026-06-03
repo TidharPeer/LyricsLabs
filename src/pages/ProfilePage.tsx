@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -50,6 +50,18 @@ export function ProfilePage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function shareOrCopy() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Join me on LyricsLabs!', text: 'Learn lyrics and practice songs with me on LyricsLabs', url: shareLink })
+        return
+      } catch { /* user cancelled */ }
+    }
+    await navigator.clipboard.writeText(shareLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -61,15 +73,19 @@ export function ProfilePage() {
 
       {/* Identity */}
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
           {(user.email ?? 'U').slice(0, 2).toUpperCase()}
         </div>
-        <div>
-          <p className="font-medium">{user.email}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{user.email}</p>
           <p className="text-xs text-muted-foreground">
             Member since {new Date(user.created_at ?? Date.now()).toLocaleDateString()}
           </p>
         </div>
+        <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={shareOrCopy}>
+          {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Share2 className="h-3.5 w-3.5" />}
+          {copied ? 'Copied!' : 'Share'}
+        </Button>
       </div>
 
       <Separator />
