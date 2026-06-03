@@ -129,12 +129,18 @@ export function HomePage() {
   const [sessionDismissed, setSessionDismissed] = useState(false)
   const [query, setQuery] = useState('')
   const [searchActive, setSearchActive] = useState(false)
+  // Once the user has typed anything, clearing the search expands the hero again
+  const [hasSearched, setHasSearched] = useState(false)
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Debounce: collapse hero when typing, expand when cleared
   useEffect(() => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
-    collapseTimerRef.current = setTimeout(() => setSearchActive(query.length > 0), 400)
+    collapseTimerRef.current = setTimeout(() => {
+      const active = query.length > 0
+      setSearchActive(active)
+      if (active) setHasSearched(true)
+    }, 400)
     return () => { if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current) }
   }, [query])
 
@@ -143,8 +149,9 @@ export function HomePage() {
     ? !localStorage.getItem(`lyricsLabsOnboarded:${user.id}`)
     : true)
 
-  // Logged-in: collapse based on per-user flag. Logged-out: always show full hero (key CTA surface)
-  const heroCollapsed = (user ? !showHero : sessionDismissed) || searchActive
+  // Collapse when: actively searching, OR logged-out user dismissed this session,
+  // OR returning logged-in user who hasn't typed and cleared yet (which re-opens it)
+  const heroCollapsed = searchActive || sessionDismissed || (!!user && !showHero && !hasSearched)
 
   function dismissHero() {
     if (user) {
@@ -384,11 +391,12 @@ export function HomePage() {
         </div>
       )}
 
-      {/* Recently played / discover — shown on home view with no active search */}
+      {/* Recently played + discover — shown on home view with no active search */}
       {!showBrowse && (
-        user
-          ? <RecentlyPlayed userId={user.id} fallback={<DiscoverSection />} />
-          : <DiscoverSection />
+        <>
+          {user && <RecentlyPlayed userId={user.id} />}
+          <DiscoverSection />
+        </>
       )}
 
       {/* Filters — hidden for artists grid, artist tabs, and home view */}

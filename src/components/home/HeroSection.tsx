@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Search, Mic2, Gamepad2, Star } from 'lucide-react'
+import { Search, Mic2, Gamepad2, Star, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import logoUrl from '@/assets/lyrics_labs_logo.svg'
@@ -54,12 +54,21 @@ export function HeroSection({ query, setQuery, user, onDismiss, collapsed, place
         <div className="relative w-full max-w-xl mx-auto">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
-            className="pl-12 h-14 text-base rounded-xl"
+            className="pl-12 pr-12 h-14 text-base rounded-xl"
             placeholder={placeholder ?? 'Search any song or artist…'}
             value={query}
             onChange={e => setQuery(e.target.value)}
             autoFocus={!collapsed}
           />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 

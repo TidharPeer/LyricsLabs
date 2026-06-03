@@ -57,6 +57,26 @@ export async function fetchRecentSongs(limit = 6, language?: string): Promise<So
   return data.map(rowToSong)
 }
 
+export async function fetchDiscoverSongs(limit = 6): Promise<Song[]> {
+  // Fetch a pool of recent English songs, then filter client-side for synced + unique artists
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .eq('language', 'en')
+    .order('created_at', { ascending: false })
+    .limit(60)
+  if (error || !data) return []
+  const synced = data.map(rowToSong).filter(s => s.lyrics.some(l => l.timestamp !== undefined))
+  const seenArtists = new Set<string>()
+  const result: Song[] = []
+  for (const s of synced) {
+    if (result.length >= limit) break
+    const key = s.artist.toLowerCase()
+    if (!seenArtists.has(key)) { seenArtists.add(key); result.push(s) }
+  }
+  return result
+}
+
 export async function searchSongs(query: string): Promise<Song[]> {
   if (!query.trim()) return fetchSongs()
 

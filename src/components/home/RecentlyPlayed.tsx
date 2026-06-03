@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ListMusic, Play } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { SongCard } from '@/components/songs/SongCard'
 import { fetchSongsByIds, fetchPlaylist } from '@/lib/db'
 import { getRecentSongIds, getRecentPlaylistId } from '@/lib/storage'
@@ -9,10 +8,9 @@ import type { Song, Playlist } from '@/types'
 
 interface Props {
   userId: string
-  fallback: React.ReactNode
 }
 
-export function RecentlyPlayed({ userId, fallback }: Props) {
+export function RecentlyPlayed({ userId }: Props) {
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [playlist, setPlaylist] = useState<Playlist | null | undefined>(undefined)
 
@@ -40,15 +38,18 @@ export function RecentlyPlayed({ userId, fallback }: Props) {
     )
   }
 
-  // Nothing tracked yet — show fallback (Discover section)
-  if (songs.length === 0 && !playlist) return <>{fallback}</>
+  // Nothing tracked yet — render nothing (DiscoverSection is always shown below)
+  if (songs.length === 0 && !playlist) return null
 
   return (
     <div className="space-y-5">
       {playlist && (
         <div>
           <h2 className="text-sm font-medium text-muted-foreground mb-2">Last Playlist</h2>
-          <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/50 transition-colors">
+          <Link
+            to={`/playlists/${playlist.id}/play`}
+            className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/50 transition-colors group"
+          >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 shrink-0">
                 <ListMusic className="h-5 w-5 text-indigo-500" />
@@ -60,13 +61,11 @@ export function RecentlyPlayed({ userId, fallback }: Props) {
                 )}
               </div>
             </div>
-            <Button size="sm" asChild>
-              <Link to={`/playlists/${playlist.id}/play`}>
-                <Play className="h-3.5 w-3.5" />
-                Continue
-              </Link>
-            </Button>
-          </div>
+            <span className="flex items-center gap-1.5 text-sm font-medium text-primary opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
+              <Play className="h-3.5 w-3.5" />
+              Continue
+            </span>
+          </Link>
         </div>
       )}
 

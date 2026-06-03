@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { SongCard } from '@/components/songs/SongCard'
-import { fetchRecentSongs } from '@/lib/db'
+import { fetchDiscoverSongs } from '@/lib/db'
 import type { Song } from '@/types'
 
 export function DiscoverSection() {
   const [songs, setSongs] = useState<Song[] | null>(null)
 
   useEffect(() => {
-    fetchRecentSongs(6, 'en').then(setSongs).catch(() => setSongs([]))
+    fetchDiscoverSongs(6).then(setSongs).catch(() => setSongs([]))
   }, [])
 
   if (songs === null) {
