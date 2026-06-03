@@ -315,8 +315,8 @@ export function HomePage() {
         </div>
       )}
 
-      {/* Add-song buttons for home view (no h1 title, just the action buttons) */}
-      {heroCollapsed && !showBrowse && user && (
+      {/* Add-song buttons — always visible for logged-in users on home view */}
+      {!showBrowse && user && (
         <div className="flex justify-end gap-2">
           <Button variant="outline" asChild>
             <Link to="/import-concert">
