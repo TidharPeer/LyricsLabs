@@ -315,7 +315,7 @@ export function HomePage() {
               </Button>
               <Button onClick={() => setSearchDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
-                {t('nav.addSong')}
+                <span className="hidden sm:inline">{t('nav.addSong')}</span>
               </Button>
             </div>
           )}
@@ -345,50 +345,47 @@ export function HomePage() {
       )}
 
       {user && (
-        <div className="flex items-start gap-2">
-          <Tabs value={view} onValueChange={switchView} className="flex-1 min-w-0">
-            <div className="overflow-x-auto pb-px">
-              <TabsList className="w-max flex-nowrap">
-                <TabsTrigger value="home" className="shrink-0 gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Recently Played
+        <Tabs value={view} onValueChange={switchView}>
+          <div className="overflow-x-auto pb-px">
+            <TabsList className="w-max flex-nowrap">
+              <TabsTrigger value="home" className="shrink-0 gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="sm:hidden">Recent</span>
+                <span className="hidden sm:inline">Recently Played</span>
+              </TabsTrigger>
+              <TabsTrigger value="all" className="shrink-0 gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                <span className="sm:hidden">All</span>
+                <span className="hidden sm:inline">{t('auth.allSongs')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="mine" className="shrink-0 gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <span className="sm:hidden">Mine</span>
+                <span className="hidden sm:inline">{t('auth.mySongs')}</span>
+              </TabsTrigger>
+              <TabsTrigger value="artists" className="shrink-0 gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                <span className="sm:hidden">Artists</span>
+                <span className="hidden sm:inline">Browse Artists</span>
+              </TabsTrigger>
+              {artistTabs.map(artist => (
+                <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
+                  <Music className="h-3.5 w-3.5 shrink-0" />
+                  <span className="max-w-[8rem] truncate">{artist}</span>
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => closeArtistTab(artist, e)}
+                    className="ml-0.5 rounded p-0.5 opacity-60 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/15"
+                  >
+                    <X className="h-3 w-3" />
+                  </span>
                 </TabsTrigger>
-                <TabsTrigger value="all" className="shrink-0 gap-1.5">
-                  <Globe className="h-3.5 w-3.5" />
-                  {t('auth.allSongs')}
-                </TabsTrigger>
-                <TabsTrigger value="mine" className="shrink-0 gap-1.5">
-                  <User className="h-3.5 w-3.5" />
-                  {t('auth.mySongs')}
-                </TabsTrigger>
-                {artistTabs.map(artist => (
-                  <TabsTrigger key={artist} value={`artist:${artist}`} className="shrink-0 gap-1 pl-3 pr-1.5">
-                    <Music className="h-3.5 w-3.5 shrink-0" />
-                    <span className="max-w-[8rem] truncate">{artist}</span>
-                    <span
-                      role="button"
-                      tabIndex={-1}
-                      onMouseDown={e => e.stopPropagation()}
-                      onClick={e => closeArtistTab(artist, e)}
-                      className="ml-0.5 rounded p-0.5 opacity-60 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/15"
-                    >
-                      <X className="h-3 w-3" />
-                    </span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
-          <Button
-            variant={view === 'artists' ? 'secondary' : 'outline'}
-            size="sm"
-            className="shrink-0 gap-1.5"
-            onClick={() => switchView(view === 'artists' ? 'home' : 'artists')}
-          >
-            <Users className="h-3.5 w-3.5" />
-            Browse Artists
-          </Button>
-        </div>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
       )}
 
       {/* Recently played + discover — shown on home view with no active search */}
