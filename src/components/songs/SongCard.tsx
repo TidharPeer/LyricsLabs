@@ -31,7 +31,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
           {/* Title + inline edit icon */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
-              <p className="font-medium truncate">{song.title}</p>
+              <p className="font-medium truncate min-w-0 flex-1">{song.title}</p>
               {onEdit && (
                 <button
                   onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit() }}
@@ -46,7 +46,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
             <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
             <Badge variant="secondary" className="hidden sm:flex">
               {t(`languages.${song.language}`, song.language)}
             </Badge>
