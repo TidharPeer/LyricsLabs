@@ -52,15 +52,15 @@ export function SongDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate('/')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{song.title}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-muted-foreground">{song.artist}</span>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold leading-snug">{song.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+              <span className="text-sm text-muted-foreground">{song.artist}</span>
               <Badge variant="secondary">{t(`languages.${song.language}`, song.language)}</Badge>
               <span className="text-xs text-muted-foreground">
                 {t('song.lines', { count: song.lyrics.length })}
@@ -68,7 +68,7 @@ export function SongDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-1.5 shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -88,7 +88,7 @@ export function SongDetailPage() {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/songs/${song.id}/edit`}>
                 <Edit className="h-3.5 w-3.5" />
-                {t('common.edit')}
+                <span className="hidden sm:inline">{t('common.edit')}</span>
               </Link>
             </Button>
           )}
@@ -96,7 +96,7 @@ export function SongDetailPage() {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/songs/${song.id}/timestamps`}>
                 <Clock className="h-3.5 w-3.5" />
-                {t('songDetail.editTimestamps')}
+                <span className="hidden sm:inline">{t('songDetail.editTimestamps')}</span>
               </Link>
             </Button>
           )}
@@ -115,6 +115,15 @@ export function SongDetailPage() {
         </TabsContent>
 
         <TabsContent value="lyrics" className="mt-4 space-y-3">
+          {/* Add Timestamps CTA — above lyrics so it's the first thing seen */}
+          {song.lyrics.length > 0 && !hasTimestamps && user && (
+            <Button variant="outline" asChild className="w-full sm:w-auto gap-1.5">
+              <Link to={`/songs/${song.id}/timestamps`}>
+                <Clock className="h-4 w-4" />
+                Add Timestamps for Karaoke
+              </Link>
+            </Button>
+          )}
           <div className="rounded-lg border p-4 space-y-0.5 max-h-[500px] overflow-y-auto" dir={lyricsDir(song.language)}>
             {song.lyrics.length === 0 ? (
               <div className="flex flex-col items-center gap-4 py-8">
@@ -142,15 +151,6 @@ export function SongDetailPage() {
             )}
           </div>
 
-          {/* Prompt to add timestamps when lyrics exist but aren't synced */}
-          {song.lyrics.length > 0 && !hasTimestamps && user && (
-            <Button variant="outline" asChild className="w-full sm:w-auto gap-1.5">
-              <Link to={`/songs/${song.id}/timestamps`}>
-                <Clock className="h-4 w-4" />
-                Add Timestamps for Karaoke
-              </Link>
-            </Button>
-          )}
         </TabsContent>
 
         <TabsContent value="practice" className="mt-4">

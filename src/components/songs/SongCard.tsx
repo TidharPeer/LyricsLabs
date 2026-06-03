@@ -21,7 +21,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
   return (
     <Link to={`/songs/${song.id}`} className="group block">
       <Card className="transition-colors hover:bg-muted/50 cursor-pointer border-l-2 border-l-indigo-500/30 hover:border-l-indigo-500/70">
-        <CardContent className="flex items-center gap-4 p-4">
+        <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
           {/* Left icon: Music note → Play on hover */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <Music2 className="h-5 w-5 text-primary group-hover:hidden" />
@@ -46,7 +46,7 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
             <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Badge variant="secondary" className="hidden sm:flex">
               {t(`languages.${song.language}`, song.language)}
             </Badge>
