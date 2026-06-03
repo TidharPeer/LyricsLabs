@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Mic2, Users, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { HeroSection } from '@/components/home/HeroSection'
@@ -149,8 +150,11 @@ export function HomePage() {
     ? !localStorage.getItem(`lyricsLabsOnboarded:${user.id}`)
     : true)
 
-  // Collapse when: actively searching, OR logged-out user dismissed this session,
-  // OR returning logged-in user who hasn't typed and cleared yet (which re-opens it)
+  // Show the HeroSection only for onboarding users OR after a returning user has typed-then-cleared
+  const showHeroSection = showHero || (hasSearched && !searchActive)
+
+  // Collapse when: actively searching, OR logged-out dismissed this session,
+  // OR returning user who hasn't completed a type-then-clear cycle yet
   const heroCollapsed = searchActive || sessionDismissed || (!!user && !showHero && !hasSearched)
 
   function dismissHero() {
@@ -276,14 +280,35 @@ export function HomePage() {
 
   return (
     <div className="space-y-5">
-      <HeroSection
-        query={query}
-        setQuery={setQuery}
-        user={user}
-        onDismiss={dismissHero}
-        collapsed={heroCollapsed}
-        placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
-      />
+      {showHeroSection ? (
+        <HeroSection
+          query={query}
+          setQuery={setQuery}
+          user={user}
+          onDismiss={dismissHero}
+          collapsed={heroCollapsed}
+          placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
+        />
+      ) : (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            className="pl-9 pr-9"
+            placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
+            value={query}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {heroCollapsed && showBrowse && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

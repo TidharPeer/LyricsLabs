@@ -52,7 +52,8 @@ export function RecentlyPlayed({ userId }: Props) {
           >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 shrink-0">
-                <ListMusic className="h-5 w-5 text-indigo-500" />
+                <ListMusic className="h-5 w-5 text-indigo-500 group-hover:hidden" />
+                <Play className="h-5 w-5 text-indigo-500 hidden group-hover:block" />
               </div>
               <div>
                 <p className="font-medium leading-tight">{playlist.name}</p>
