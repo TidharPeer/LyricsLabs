@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Search, Mic2, Gamepad2, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import logoUrl from '@/assets/lyrics_labs_logo.svg'
 import type { User } from '@supabase/supabase-js'
 
 interface Props {
@@ -16,7 +17,7 @@ export function HeroSection({ query, setQuery, user, onDismiss }: Props) {
     <div className="py-14 sm:py-20 flex flex-col items-center text-center gap-6">
       {/* Branding */}
       <div className="flex items-center gap-3">
-        <img src="/favicon.svg" alt="LyricsLabs" className="h-10 w-10" />
+        <img src={logoUrl} alt="LyricsLabs" className="h-12 w-12 rounded-full" />
         <span className="text-3xl font-bold tracking-tight">LyricsLabs</span>
       </div>
 
