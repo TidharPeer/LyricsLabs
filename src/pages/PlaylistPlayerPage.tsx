@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchPlaylist, fetchPlaylistSongs } from '@/lib/db'
-import { setRecentPlaylist } from '@/lib/storage'
+import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
 
