@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { HeroSection } from '@/components/home/HeroSection'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
@@ -120,7 +121,13 @@ export function HomePage() {
     catch { return [] }
   })
 
+  const [showHero, setShowHero] = useState(() => !localStorage.getItem('lyricsLabsOnboarded'))
   const [query, setQuery] = useState('')
+
+  function dismissHero() {
+    localStorage.setItem('lyricsLabsOnboarded', '1')
+    setShowHero(false)
+  }
 
   // Artist tabs + artists grid both use all-songs data; only 'mine' is different
   const fetchView: 'all' | 'mine' = (view === 'mine' && !!user) ? 'mine' : 'all'
@@ -235,15 +242,16 @@ export function HomePage() {
 
   return (
     <div className="space-y-5">
-      {!user && (
-        <div className="rounded-xl border bg-muted/30 px-4 py-4 text-center space-y-2">
-          <p className="font-semibold">Welcome to LyricsLabs</p>
-          <p className="text-sm text-muted-foreground">
-            Browse the community library below. Sign in to earn stars, track streaks, and build playlists.
-          </p>
-          <Button size="sm" asChild><Link to="/auth">Sign In</Link></Button>
-        </div>
+      {showHero && (
+        <HeroSection
+          query={query}
+          setQuery={setQuery}
+          user={user}
+          onDismiss={dismissHero}
+        />
       )}
+
+      {(!showHero || !!user) && (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">
           {view === 'all' ? t('auth.allSongs')
@@ -277,6 +285,7 @@ export function HomePage() {
           </div>
         )}
       </div>
+      )}
 
       {user && (
         <div className="flex items-start gap-2">
@@ -321,7 +330,7 @@ export function HomePage() {
         </div>
       )}
 
-      {view !== 'artists' && (
+      {!showHero && view !== 'artists' && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -333,7 +342,7 @@ export function HomePage() {
         </div>
       )}
 
-      {view === 'artists' && (
+      {!showHero && view === 'artists' && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
