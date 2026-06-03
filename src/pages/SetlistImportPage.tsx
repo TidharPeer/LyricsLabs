@@ -468,10 +468,10 @@ export function SetlistImportPage() {
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
               </Button>
             </div>
-            {/* Artist not found — friendly inline hint */}
+            {/* Artist not found — clarify it's a search result, not an error */}
             {notFound && (
               <p className="text-sm text-muted-foreground">
-                🎤 Oops, we couldn't find that artist. Try a different spelling or their full name — e.g. <em>"The Beatles"</em> instead of <em>"Beatles"</em>.
+                No artists found for <strong>"{artistQuery}"</strong>. Try a different spelling or their full name — e.g. <em>"The Beatles"</em> instead of <em>"Beatles"</em>.
               </p>
             )}
 
