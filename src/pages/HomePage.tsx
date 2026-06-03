@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Globe, User, X, ChevronLeft, ChevronRight, Music, Mic2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { HeroSection } from '@/components/home/HeroSection'
@@ -123,6 +122,17 @@ export function HomePage() {
 
   const [showHero, setShowHero] = useState(() => !localStorage.getItem('lyricsLabsOnboarded'))
   const [query, setQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounce: collapse hero when typing, expand when cleared
+  useEffect(() => {
+    if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
+    collapseTimerRef.current = setTimeout(() => setSearchActive(query.length > 0), 400)
+    return () => { if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current) }
+  }, [query])
+
+  const heroCollapsed = !showHero || searchActive
 
   function dismissHero() {
     localStorage.setItem('lyricsLabsOnboarded', '1')
@@ -242,16 +252,16 @@ export function HomePage() {
 
   return (
     <div className="space-y-5">
-      {showHero && (
-        <HeroSection
-          query={query}
-          setQuery={setQuery}
-          user={user}
-          onDismiss={dismissHero}
-        />
-      )}
+      <HeroSection
+        query={query}
+        setQuery={setQuery}
+        user={user}
+        onDismiss={dismissHero}
+        collapsed={heroCollapsed}
+        placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
+      />
 
-      {(!showHero || !!user) && (
+      {heroCollapsed && (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">
           {view === 'all' ? t('auth.allSongs')
@@ -330,29 +340,6 @@ export function HomePage() {
         </div>
       )}
 
-      {!showHero && view !== 'artists' && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder={tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      )}
-
-      {!showHero && view === 'artists' && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search artists…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      )}
 
       {/* Filters — hidden for artists grid and artist tabs (artist already implicit) */}
       {!loading && songs.length > 1 && !query && view !== 'artists' && (
