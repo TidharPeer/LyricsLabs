@@ -139,6 +139,8 @@ export function BackChain({ song, onBack, onComplete, playerControls }: Props) {
     setChecked(false)
   }
 
+  const isSynced = song.lyrics.some(l => l.timestamp !== undefined)
+
   // ── Reveal phase ────────────────────────────────────────────────────────────
   if (phase === 'reveal') {
     const visibleChunks = chunks.slice(newChunkIndex) // song-order slice
@@ -148,6 +150,12 @@ export function BackChain({ song, onBack, onComplete, playerControls }: Props) {
         <p className="text-xs text-center text-muted-foreground/80 italic">
           Learn from the end — each round adds earlier lyrics to the top.
         </p>
+
+        {!isSynced && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+            Lyrics aren't synced — music won't follow along. Sync timestamps in the song editor for the best experience.
+          </p>
+        )}
 
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{t('game.backChain')}</span>

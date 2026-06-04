@@ -22,7 +22,7 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿\s]/g, '').trim()
 }
 
-export function MemoryBurst({ song, onBack, onComplete, playerControls, currentTime }: Props) {
+export function MemoryBurst({ song, onBack, onComplete, playerControls }: Props) {
   const { t } = useTranslation()
 
   const lines = useMemo(
@@ -48,14 +48,7 @@ export function MemoryBurst({ song, onBack, onComplete, playerControls, currentT
     }
   }, [current, phase, playerControls, done, lines])
 
-  // Pause when the current line ends (next line's timestamp reached)
-  useEffect(() => {
-    if (phase !== 'reading' || !playerControls || currentTime === undefined) return
-    const nextTs = lines[current + 1]?.timestamp
-    if (nextTs !== undefined && currentTime >= nextTs) {
-      playerControls.pause()
-    }
-  }, [currentTime, phase, current, playerControls, lines])
+  const isSynced = lines.some(l => l.timestamp !== undefined)
 
   if (lines.length === 0) {
     return (
@@ -146,6 +139,12 @@ export function MemoryBurst({ song, onBack, onComplete, playerControls, currentT
       </div>
 
       <Progress value={(current / lines.length) * 100} />
+
+      {!isSynced && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+          Lyrics aren't synced — music won't follow along. Sync timestamps in the song editor for the best experience.
+        </p>
+      )}
 
       <div className="rounded-lg border p-6 space-y-4" dir={lyricsDir(song.language)}>
         {phase === 'reading' ? (
