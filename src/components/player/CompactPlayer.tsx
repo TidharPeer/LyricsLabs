@@ -3,11 +3,18 @@ import { Music2, Video, VideoOff, Play, Pause, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { loadYTApi } from '@/lib/youtube'
 
+export interface PlayerControls {
+  seekTo: (t: number) => void
+  play: () => void
+  pause: () => void
+}
+
 interface Props {
   videoId: string
   title: string
   autoPlay?: boolean
   onTimeUpdate?: (time: number) => void
+  onPlayerReady?: (controls: PlayerControls) => void
 }
 
 function formatTime(s: number): string {
@@ -16,7 +23,7 @@ function formatTime(s: number): string {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate }: Props) {
+export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate, onPlayerReady }: Props) {
   const playerDivRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YT.Player | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -55,6 +62,11 @@ export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate }
           onReady: (event) => {
             setReady(true)
             if (autoPlay) event.target.playVideo()
+            onPlayerReady?.({
+              seekTo: (t) => playerRef.current?.seekTo(t, true),
+              play: () => { playerRef.current?.playVideo() },
+              pause: () => { playerRef.current?.pauseVideo() },
+            })
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
               const d = (playerRef.current as unknown as { getDuration?(): number })?.getDuration?.() ?? 0

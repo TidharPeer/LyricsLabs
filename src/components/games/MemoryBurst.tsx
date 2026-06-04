@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, XCircle, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { saveGameSession } from '@/lib/storage'
 import { lyricsDir, isRTL } from '@/lib/rtl'
+import type { PlayerControls } from '@/components/player/CompactPlayer'
 import type { Song } from '@/types'
 
 interface Props {
@@ -13,16 +14,21 @@ interface Props {
   onBack: () => void
   onComplete?: (score: number, sessionId: string) => void
   activeLine?: number
+  playerControls?: PlayerControls
+  currentTime?: number
 }
 
 function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿\s]/g, '').trim()
 }
 
-export function MemoryBurst({ song, onBack, onComplete }: Props) {
+export function MemoryBurst({ song, onBack, onComplete, playerControls, currentTime }: Props) {
   const { t } = useTranslation()
 
-  const lines = song.lyrics.filter(l => l.text.trim().length > 0)
+  const lines = useMemo(
+    () => song.lyrics.filter(l => l.text.trim().length > 0),
+    [song.lyrics]
+  )
 
   const [current, setCurrent] = useState(0)
   const [phase, setPhase] = useState<'reading' | 'typing'>('reading')
@@ -30,6 +36,26 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
   const [results, setResults] = useState<boolean[]>([])
   const [revealed, setRevealed] = useState(false)
   const [done, setDone] = useState(false)
+  const [autoAdvancing, setAutoAdvancing] = useState(false)
+
+  // Seek to line start and play when entering reading phase
+  useEffect(() => {
+    if (phase !== 'reading' || !playerControls || done) return
+    const ts = lines[current]?.timestamp
+    if (ts !== undefined) {
+      playerControls.seekTo(ts)
+      playerControls.play()
+    }
+  }, [current, phase, playerControls, done, lines])
+
+  // Pause when the current line ends (next line's timestamp reached)
+  useEffect(() => {
+    if (phase !== 'reading' || !playerControls || currentTime === undefined) return
+    const nextTs = lines[current + 1]?.timestamp
+    if (nextTs !== undefined && currentTime >= nextTs) {
+      playerControls.pause()
+    }
+  }, [currentTime, phase, current, playerControls, lines])
 
   if (lines.length === 0) {
     return (
@@ -46,6 +72,7 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
   const score = lines.length > 0 ? Math.round((correctCount / lines.length) * 100) : 0
 
   function startTyping() {
+    playerControls?.pause()
     setPhase('typing')
   }
 
@@ -55,6 +82,13 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
       normalize(input).startsWith(norm.slice(0, Math.floor(norm.length * 0.7)))
     setResults(r => [...r, isCorrect])
     setRevealed(true)
+    if (isCorrect) {
+      setAutoAdvancing(true)
+      setTimeout(() => {
+        setAutoAdvancing(false)
+        nextLine()
+      }, 1000)
+    }
   }
 
   function nextLine() {
@@ -78,6 +112,7 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
     setRevealed(false)
     setPhase('reading')
     setDone(false)
+    setAutoAdvancing(false)
   }
 
   // ── Done screen ──────────────────────────────────────────────────────────────
@@ -129,7 +164,6 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
         ) : (
           <>
             <p className="text-xs text-muted-foreground">Type the line from memory:</p>
-            {/* Blank placeholder where the line was */}
             <div className="h-8 rounded border-2 border-dashed border-muted flex items-center px-3">
               <span className="text-muted-foreground/40 text-sm select-none">— hidden —</span>
             </div>
@@ -174,13 +208,16 @@ export function MemoryBurst({ song, onBack, onComplete }: Props) {
         {phase === 'typing' && !revealed && (
           <Button onClick={checkAnswer}>{t('game.check')}</Button>
         )}
-        {revealed && (
+        {revealed && !autoAdvancing && (
           <Button onClick={nextLine}>
             {current < lines.length - 1
               ? <><ChevronRight className="h-4 w-4" />{t('game.next')}</>
               : t('game.finish')
             }
           </Button>
+        )}
+        {autoAdvancing && (
+          <span className="text-sm text-muted-foreground self-center">Continuing…</span>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { saveGameSession } from '@/lib/storage'
 import { lyricsDir } from '@/lib/rtl'
+import type { PlayerControls } from '@/components/player/CompactPlayer'
 import type { Song } from '@/types'
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   onBack: () => void
   onComplete?: (score: number, sessionId: string) => void
   activeLine?: number
+  playerControls?: PlayerControls
 }
 
 const CHUNK_SIZE = 4
@@ -50,7 +52,7 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-zÀ-ɏЀ-ӿ֐-׿]/g, '').trim()
 }
 
-export function BackChain({ song, onBack, onComplete }: Props) {
+export function BackChain({ song, onBack, onComplete, playerControls }: Props) {
   const { t } = useTranslation()
 
   const chunks = useMemo(() => {
@@ -64,6 +66,18 @@ export function BackChain({ song, onBack, onComplete }: Props) {
 
   const [step, setStep] = useState(0)
   const [phase, setPhase] = useState<'reveal' | 'quiz' | 'done'>('reveal')
+
+  // Seek to the starting chunk when the player becomes ready
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!playerControls) return
+    const ts = chunks[chunks.length - 1]?.[0]?.timestamp
+    if (ts !== undefined) {
+      playerControls.seekTo(ts)
+      playerControls.play()
+    }
+  }, [playerControls])
+
   const [quiz, setQuiz] = useState<QuizItem[]>([])
   const [inputs, setInputs] = useState<string[]>([])
   const [checked, setChecked] = useState(false)
@@ -85,6 +99,13 @@ export function BackChain({ song, onBack, onComplete }: Props) {
 
   function advance() {
     if (step < totalChunks - 1) {
+      // The chunk being added is one earlier than the current new chunk
+      const nextNewChunkIndex = newChunkIndex - 1
+      const ts = chunks[nextNewChunkIndex]?.[0]?.timestamp
+      if (ts !== undefined) {
+        playerControls?.seekTo(ts)
+        playerControls?.play()
+      }
       setStep(s => s + 1)
     } else {
       const q = buildQuiz(song.lyrics, QUIZ_COUNT)

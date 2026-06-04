@@ -158,11 +158,11 @@ export function SongDetailPage() {
             <p className="text-sm text-muted-foreground">Choose a practice mode:</p>
             <Separator />
             {[
+              { mode: 'memory-burst', title: t('game.memoryBurst'), desc: t('game.memoryBurstDesc') },
               { mode: 'fill-blank', title: t('game.fillBlank'), desc: t('game.fillBlankDesc') },
               { mode: 'fadeout', title: t('game.fadeout'), desc: t('game.fadeoutDesc') },
               { mode: 'line-completion', title: t('game.lineCompletion'), desc: t('game.lineCompletionDesc') },
               { mode: 'back-chain', title: t('game.backChain'), desc: t('game.backChainDesc') },
-              { mode: 'memory-burst', title: t('game.memoryBurst'), desc: t('game.memoryBurstDesc') },
             ].map(({ mode, title, desc }) => (
               <div
                 key={mode}

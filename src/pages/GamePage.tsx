@@ -7,6 +7,7 @@ import { findActiveLine } from '@/lib/activeLine'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { CompactPlayer } from '@/components/player/CompactPlayer'
+import type { PlayerControls } from '@/components/player/CompactPlayer'
 import { FillInTheBlank } from '@/components/games/FillInTheBlank'
 import { FadeOutChallenge } from '@/components/games/FadeOutChallenge'
 import { LineCompletion } from '@/components/games/LineCompletion'
@@ -29,6 +30,7 @@ export function GamePage() {
   const [showStars, setShowStars] = useState(false)
   const [showGuestNudge, setShowGuestNudge] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [playerControls, setPlayerControls] = useState<PlayerControls | null>(null)
 
   useEffect(() => {
     if (!id) { setLoading(false); return }
@@ -104,6 +106,7 @@ export function GamePage() {
           title={`${song.title} — ${song.artist}`}
           autoPlay
           onTimeUpdate={setCurrentTime}
+          onPlayerReady={setPlayerControls}
         />
       )}
 
@@ -117,10 +120,10 @@ export function GamePage() {
         <LineCompletion song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
       )}
       {mode === 'back-chain' && (
-        <BackChain song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
+        <BackChain song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} playerControls={playerControls ?? undefined} />
       )}
       {mode === 'memory-burst' && (
-        <MemoryBurst song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} />
+        <MemoryBurst song={song} onBack={handleBack} onComplete={handleGameComplete} activeLine={activeLine} playerControls={playerControls ?? undefined} currentTime={currentTime} />
       )}
 
       {!['fill-blank', 'fadeout', 'line-completion', 'back-chain', 'memory-burst'].includes(mode ?? '') && (
