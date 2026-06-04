@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Search, Trash2, X, Plus, Loader2, Music2, Play, GripVertical, Shuffle } from 'lucide-react'
+import { Search, Trash2, X, Plus, Loader2, Music2, Play, GripVertical, Shuffle, CheckCircle2 } from 'lucide-react'
 import {
   DndContext, closestCenter,
   KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -72,6 +72,11 @@ function SortableSongRow({ song, index, onRemove, onNavigate }: SortableRowProps
       <Badge variant="secondary" className="hidden sm:flex shrink-0 text-xs">
         {t(`languages.${song.language}`, song.language)}
       </Badge>
+      {song.lyrics.some(l => l.timestamp !== undefined) && (
+        <span title="Synced" className="shrink-0 flex">
+          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+        </span>
+      )}
       <button
         onClick={e => { e.stopPropagation(); onRemove(song.id) }}
         className="hidden group-hover/row:flex rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
@@ -100,6 +105,11 @@ function ReadonlySongRow({ song, index, onNavigate }: { song: Song; index: numbe
       <Badge variant="secondary" className="hidden sm:flex shrink-0 text-xs">
         {t(`languages.${song.language}`, song.language)}
       </Badge>
+      {song.lyrics.some(l => l.timestamp !== undefined) && (
+        <span title="Synced" className="shrink-0 flex">
+          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+        </span>
+      )}
     </div>
   )
 }
@@ -310,6 +320,11 @@ export function PlaylistDetailDialog({ playlist, open, onOpenChange, onDelete, o
                           <p className="text-sm font-medium truncate">{song.title}</p>
                           <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
                         </div>
+                        {song.lyrics.some(l => l.timestamp !== undefined) && (
+                          <span title="Synced" className="shrink-0 flex">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          </span>
+                        )}
                         {inPlaylist ? (
                           <span className="text-xs text-muted-foreground shrink-0">
                             {t('playlist.alreadyAdded')}

@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink, Plus, Search, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
-import { fetchPlaylist, fetchPlaylistSongs } from '@/lib/db'
+import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs } from '@/lib/db'
 import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
@@ -30,6 +31,10 @@ export function PlaylistPlayerPage() {
   const [playlist, setPlaylist] = useState<Playlist | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [addQuery, setAddQuery] = useState('')
+  const [addResults, setAddResults] = useState<Song[]>([])
+  const [addSearching, setAddSearching] = useState(false)
 
   // Position in the current playback order (0-based)
   const [pos, setPos] = useState(0)
@@ -106,6 +111,27 @@ export function PlaylistPlayerPage() {
       setOrder(newOrder)
       setPos(0)
     }
+  }
+
+  const isOwner = !!(user && playlist && user.id === playlist.createdBy)
+
+  useEffect(() => {
+    if (!showAdd) return
+    const timer = setTimeout(async () => {
+      setAddSearching(true)
+      try {
+        setAddResults(addQuery.length >= 2 ? await searchSongs(addQuery) : await fetchSongs())
+      } finally {
+        setAddSearching(false)
+      }
+    }, addQuery ? 400 : 0)
+    return () => clearTimeout(timer)
+  }, [addQuery, showAdd])
+
+  async function handleAddSong(song: Song) {
+    if (songs.some(s => s.id === song.id)) return
+    await addSongToPlaylist(id!, song.id, songs.length)
+    setSongs(prev => [...prev, song])
   }
 
   // Ordered display list (what appears in the queue panel)
@@ -276,6 +302,74 @@ export function PlaylistPlayerPage() {
           })}
         </div>
       </div>
+      {/* ── Add song to playlist ─────────────────────────────────────────────── */}
+      {isOwner && (
+        <div className="rounded-xl border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30">
+            <p className="text-sm font-medium">Add to playlist</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => { setShowAdd(v => !v); setAddQuery('') }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add song
+            </Button>
+          </div>
+
+          {showAdd && (
+            <div className="px-4 py-3 space-y-2 border-t">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Search songs…"
+                  value={addQuery}
+                  onChange={e => setAddQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-52 overflow-y-auto rounded-md border divide-y">
+                {addSearching ? (
+                  <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : addResults.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">No songs found</p>
+                ) : (
+                  addResults.slice(0, 20).map(song => {
+                    const inPlaylist = songs.some(s => s.id === song.id)
+                    return (
+                      <button
+                        key={song.id}
+                        disabled={inPlaylist}
+                        onClick={() => handleAddSong(song)}
+                        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent disabled:opacity-50 disabled:cursor-default transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{song.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                        </div>
+                        {song.lyrics.some(l => l.timestamp !== undefined) && (
+                          <span title="Synced" className="shrink-0 flex">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          </span>
+                        )}
+                        {inPlaylist ? (
+                          <span className="text-xs text-muted-foreground shrink-0">Already added</span>
+                        ) : (
+                          <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -344,22 +344,25 @@ export function SetlistImportPage() {
   async function importSong(index: number, songName: string) {
     updateSong(index, { status: 'importing' })
     try {
-      const lyrics = await fetchLyrics(libraryArtist, songName)
-
-      // Try primary artist name, then fall back to the setlist.fm English name
-      // (important when libraryArtist is in a non-Latin script, e.g. Hebrew)
+      // YouTube URL is required — a song without one can't be played or practiced
       let videoId = await searchYouTubeVideo(libraryArtist, songName)
       if (!videoId && selectedArtist && selectedArtist.name !== libraryArtist) {
         videoId = await searchYouTubeVideo(selectedArtist.name, songName)
       }
+      if (!videoId) {
+        updateSong(index, { status: 'error', error: 'YouTube video not found — open the song editor to add a URL manually' })
+        return
+      }
+
+      const lyrics = await fetchLyrics(libraryArtist, songName)
 
       const saved = await saveSongRemote({
         id: crypto.randomUUID(),
         title: songName,
         artist: libraryArtist,
         language: 'en',
-        youtubeUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
-        youtubeId: videoId ?? '',
+        youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        youtubeId: videoId,
         lyrics: lyrics?.lines ?? [],
         createdAt: Date.now(),
       }, user!.id)
