@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Edit, Clock, Gamepad2, Share2 } from 'lucide-react'
-import { fetchSong } from '@/lib/db'
+import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2 } from 'lucide-react'
+import { fetchSong, fetchSongs } from '@/lib/db'
 import { addRecentSong } from '@/lib/storage'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
@@ -21,6 +21,7 @@ export function SongDetailPage() {
 
   const [song, setSong] = useState<Song | null>(null)
   const [loading, setLoading] = useState(true)
+  const [artistSongs, setArtistSongs] = useState<Song[]>([])
 
   useEffect(() => {
     if (!id) { setLoading(false); return }
@@ -28,6 +29,16 @@ export function SongDetailPage() {
       setSong(s ?? null)
       setLoading(false)
       if (s && user) addRecentSong(user.id, s.id)
+      if (s?.artist) {
+        fetchSongs().then(all => {
+          const norm = s.artist.toLowerCase()
+          setArtistSongs(
+            all
+              .filter(a => a.id !== s.id && a.artist.toLowerCase() === norm)
+              .sort((a, b) => a.title.localeCompare(b.title))
+          )
+        }).catch(() => {})
+      }
     })
   }, [id])
 
@@ -110,8 +121,31 @@ export function SongDetailPage() {
           <TabsTrigger value="practice">{t('songDetail.practice')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="karaoke" className="mt-4">
+        <TabsContent value="karaoke" className="mt-4 space-y-6">
           <KaraokeView song={song} userId={user?.id} onStarEarned={handleStarEarned} />
+
+          {artistSongs.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                More by {song.artist}
+              </h3>
+              <div className="divide-y rounded-lg border overflow-hidden">
+                {artistSongs.map(s => (
+                  <Link
+                    key={s.id}
+                    to={`/songs/${s.id}`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <Music2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1 min-w-0 text-sm font-medium truncate">{s.title}</span>
+                    {s.lyrics.some(l => l.timestamp !== undefined) && (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="lyrics" className="mt-4 space-y-3">
