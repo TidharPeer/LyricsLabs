@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ListMusic } from 'lucide-react'
+import { Music2, ListMusic, Plus } from 'lucide-react'
 import { UserMenu } from './UserMenu'
+import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { useAuthUser } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/lyrics_labs_logo.svg'
@@ -10,6 +12,7 @@ export function Layout() {
   const { t } = useTranslation()
   const { user } = useAuthUser()
   const location = useLocation()
+  const [addSongOpen, setAddSongOpen] = useState(false)
   const isAuth = location.pathname === '/auth'
   return (
     <div className="min-h-screen">
@@ -49,10 +52,22 @@ export function Layout() {
             </nav>
           )}
 
-          {!isAuth && <UserMenu />}
+          <div className="flex items-center gap-2">
+            {!isAuth && user && (
+              <button
+                onClick={() => setAddSongOpen(true)}
+                className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full border hover:bg-muted transition-colors"
+                title={t('nav.addSong')}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
+            {!isAuth && <UserMenu />}
+          </div>
         </div>
       </header>
       <main className="container py-6"><Outlet /></main>
+      {user && <YouTubeSearchDialog open={addSongOpen} onOpenChange={setAddSongOpen} />}
       <footer className="border-t mt-8 py-4">
         <div className="container flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} LyricsLabs</span>

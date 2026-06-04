@@ -285,7 +285,7 @@ export function HomePage() {
         placeholder={view === 'artists' ? 'Search artists…' : tabArtist ? `Search songs by ${tabArtist}…` : t('home.search')}
       />
 
-      {heroCollapsed && showBrowse && (
+      {showBrowse && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold">
             {view === 'all' ? t('auth.allSongs')
