@@ -61,6 +61,7 @@ export function SongFormPage() {
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set())
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastFetchedId = useRef<string>('')
+  const originalVideoIdRef = useRef<string>('')
 
   // Redirect to auth if not signed in
   useEffect(() => {
@@ -78,6 +79,9 @@ export function SongFormPage() {
         setLanguage(song.language)
         setYoutubeUrl(song.youtubeUrl)
         setLyricsText(song.lyrics.map((l) => l.text).join('\n'))
+        const origId = extractYouTubeId(song.youtubeUrl) ?? ''
+        originalVideoIdRef.current = origId
+        lastFetchedId.current = origId  // prevent re-fetch on initial load
       }
       setFormReady(true)
     })
@@ -93,8 +97,10 @@ export function SongFormPage() {
     debounceRef.current = setTimeout(async () => {
       lastFetchedId.current = videoId
 
-      const needsMeta = !title.trim() || !artist.trim()
-      const needsLyrics = !lyricsText.trim()
+      // In edit mode, treat a changed video URL as a full re-fetch regardless of existing values
+      const isNewVideo = isEdit && videoId !== originalVideoIdRef.current
+      const needsMeta = !title.trim() || !artist.trim() || isNewVideo
+      const needsLyrics = !lyricsText.trim() || isNewVideo
 
       if (!needsMeta && !needsLyrics) return
 
@@ -107,19 +113,17 @@ export function SongFormPage() {
         if (!metadata) { setFetchStatus('error'); return }
 
         const filled = new Set<string>()
-        if (!title.trim()) { setTitle(metadata.title); filled.add('title') }
-        if (!artist.trim()) { setArtist(metadata.artist); filled.add('artist') }
+        if (!title.trim() || isNewVideo) { setTitle(metadata.title); filled.add('title') }
+        if (!artist.trim() || isNewVideo) { setArtist(metadata.artist); filled.add('artist') }
         setLanguage(metadata.language)
         filled.add('language')
         setAutoFilledFields(filled)
         setFetchStatus('ok')
 
-        if (needsLyrics) {
-          setLyricsLoading(true)
-          const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
-          setFetchedLyrics(lyrics)
-          setLyricsLoading(false)
-        }
+        setLyricsLoading(true)
+        const lyrics = await fetchLyrics(metadata.artist || artist, metadata.title || title)
+        setFetchedLyrics(lyrics)
+        setLyricsLoading(false)
       } else if (needsLyrics) {
         setLyricsLoading(true)
         const lyrics = await fetchLyrics(artist, title)
