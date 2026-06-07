@@ -110,8 +110,12 @@ function LiveSyncTab({ song, lines, setLines }: {
     if (!container) return
     const el = container.querySelector<HTMLElement>('[data-current="true"]')
     if (!el) return
-    // Scroll only the lyrics container, not the page, so the stamp button doesn't shift
-    const target = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2
+    // getBoundingClientRect gives viewport-relative positions; convert to
+    // container-scroll-relative so only the list scrolls, not the page.
+    const containerRect = container.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const elTop = elRect.top - containerRect.top + container.scrollTop
+    const target = elTop - container.clientHeight / 2 + el.clientHeight / 2
     container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
   }, [nextIndex])
 
