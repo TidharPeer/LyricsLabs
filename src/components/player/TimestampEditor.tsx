@@ -106,8 +106,13 @@ function LiveSyncTab({ song, lines, setLines }: {
   }
 
   useEffect(() => {
-    const el = listRef.current?.querySelector('[data-current="true"]')
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const container = listRef.current
+    if (!container) return
+    const el = container.querySelector<HTMLElement>('[data-current="true"]')
+    if (!el) return
+    // Scroll only the lyrics container, not the page, so the stamp button doesn't shift
+    const target = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2
+    container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
   }, [nextIndex])
 
   const dir = lyricsDir(song.language)

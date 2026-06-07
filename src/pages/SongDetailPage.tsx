@@ -153,12 +153,12 @@ export function SongDetailPage() {
         </TabsContent>
 
         <TabsContent value="lyrics" className="mt-4 space-y-3">
-          {/* Add Timestamps CTA — above lyrics so it's the first thing seen */}
-          {song.lyrics.length > 0 && !hasTimestamps && user && (
+          {/* Timestamps CTA — add when none exist, edit when they do */}
+          {song.lyrics.length > 0 && user && (
             <Button variant="outline" asChild className="w-full sm:w-auto gap-1.5">
               <Link to={`/songs/${song.id}/timestamps`}>
                 <Clock className="h-4 w-4" />
-                Add Timestamps for Karaoke
+                {hasTimestamps ? 'Edit Timestamps' : 'Add Timestamps for Karaoke'}
               </Link>
             </Button>
           )}
