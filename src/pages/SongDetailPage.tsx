@@ -24,6 +24,10 @@ export function SongDetailPage() {
   const [artistSongs, setArtistSongs] = useState<Song[]>([])
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [id])
+
+  useEffect(() => {
     if (!id) { setLoading(false); return }
     fetchSong(id).then(s => {
       setSong(s ?? null)
