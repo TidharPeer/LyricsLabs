@@ -1,6 +1,63 @@
-import { useMemo } from 'react'
-import { Users } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import type { Song } from '@/types'
+
+const GRADIENTS = [
+  'from-violet-700 to-violet-900',
+  'from-blue-700 to-blue-900',
+  'from-emerald-700 to-emerald-900',
+  'from-rose-700 to-rose-900',
+  'from-amber-600 to-amber-900',
+  'from-teal-700 to-teal-900',
+  'from-pink-700 to-pink-900',
+  'from-indigo-700 to-indigo-900',
+  'from-orange-700 to-orange-900',
+  'from-cyan-700 to-cyan-900',
+]
+
+function artistGradient(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff
+  return GRADIENTS[Math.abs(h) % GRADIENTS.length]
+}
+
+function ArtistCard({ artist, count, youtubeId, onClick }: {
+  artist: string
+  count: number
+  youtubeId: string
+  onClick: () => void
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const showImg = !!youtubeId && !imgFailed
+
+  return (
+    <button
+      onClick={onClick}
+      className="group relative aspect-square overflow-hidden rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      {showImg ? (
+        <img
+          src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+          alt={artist}
+          onError={() => setImgFailed(true)}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${artistGradient(artist)}`} />
+      )}
+
+      {/* Bottom-weighted dark gradient so text is always legible */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+
+      {/* Subtle hover brighten */}
+      <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/10" />
+
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        <p className="truncate text-sm font-semibold leading-snug text-white drop-shadow">{artist}</p>
+        <p className="mt-0.5 text-xs text-white/70">{count} song{count !== 1 ? 's' : ''}</p>
+      </div>
+    </button>
+  )
+}
 
 interface Props {
   songs: Song[]
@@ -10,15 +67,22 @@ interface Props {
 
 export function ArtistsGrid({ songs, query, onArtistClick }: Props) {
   const artists = useMemo(() => {
-    const map = new Map<string, number>()
+    const map = new Map<string, { count: number; youtubeId: string }>()
     for (const s of songs) {
-      if (s.artist) map.set(s.artist, (map.get(s.artist) ?? 0) + 1)
+      if (!s.artist) continue
+      if (!map.has(s.artist)) map.set(s.artist, { count: 0, youtubeId: s.youtubeId ?? '' })
+      const entry = map.get(s.artist)!
+      entry.count++
+      // prefer a song that has a YouTube ID so we always get an image if possible
+      if (!entry.youtubeId && s.youtubeId) entry.youtubeId = s.youtubeId
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+    return [...map.entries()]
+      .map(([artist, { count, youtubeId }]) => ({ artist, count, youtubeId }))
+      .sort((a, b) => a.artist.localeCompare(b.artist))
   }, [songs])
 
   const filtered = query
-    ? artists.filter(([a]) => a.toLowerCase().includes(query.toLowerCase()))
+    ? artists.filter(({ artist }) => artist.toLowerCase().includes(query.toLowerCase()))
     : artists
 
   if (filtered.length === 0) {
@@ -31,20 +95,14 @@ export function ArtistsGrid({ songs, query, onArtistClick }: Props) {
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-      {filtered.map(([artist, count]) => (
-        <button
+      {filtered.map(({ artist, count, youtubeId }) => (
+        <ArtistCard
           key={artist}
+          artist={artist}
+          count={count}
+          youtubeId={youtubeId}
           onClick={() => onArtistClick(artist)}
-          className="group rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50"
-        >
-          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-background">
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <p className="truncate font-medium">{artist}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {count} song{count !== 1 ? 's' : ''}
-          </p>
-        </button>
+        />
       ))}
     </div>
   )
