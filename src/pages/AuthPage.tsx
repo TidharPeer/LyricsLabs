@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff } from 'lucide-react'
-import logoUrl from '@/assets/lyrics_labs_logo.svg'
+import { LyricsLabLogo } from '@/components/LyricsLabLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -91,7 +91,7 @@ export function AuthPage() {
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              <img src={logoUrl} alt="LyricsLabs" className="h-16 w-16" />
+              <LyricsLabLogo className="h-16 w-16 text-primary" />
             </div>
             <h1 className="text-2xl font-bold">{t('auth.resetPasswordTitle')}</h1>
           </div>

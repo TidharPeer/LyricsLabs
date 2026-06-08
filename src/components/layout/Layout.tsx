@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { Music2, ListMusic, Plus } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
+import { LyricsLabLogo } from '@/components/LyricsLabLogo'
 import { useAuthUser } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
-import logoUrl from '@/assets/lyrics_labs_logo.svg'
 
 export function Layout() {
   const { t } = useTranslation()
@@ -19,7 +19,7 @@ export function Layout() {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between gap-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold">
-            <img src={logoUrl} alt="LyricsLabs" className="h-7 w-7 rounded-full" />
+            <LyricsLabLogo className="h-7 w-7 text-primary" />
             <span>{t('app.name')}</span>
           </Link>
 
