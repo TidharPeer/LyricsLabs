@@ -150,7 +150,7 @@ export function AuthPage() {
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <img src={logoUrl} alt="LyricsLabs" className="h-16 w-16" />
+            <LyricsLabLogo className="h-16 w-16 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">{t('app.name')}</h1>
           <p className="text-sm text-muted-foreground">{t('app.tagline')}</p>
