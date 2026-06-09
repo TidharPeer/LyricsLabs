@@ -21,6 +21,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
   const [playerReady, setPlayerReady] = useState(false)
+  const [isInstrumental, setIsInstrumental] = useState(false)
   const playerRef = useRef<YT.Player | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLDivElement>(null)
@@ -33,6 +34,24 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   const hasTimestamps = song.lyrics.some((l) => l.timestamp !== undefined)
   const activeLine = findActiveLine(song.lyrics, currentTime)
   const dir = lyricsDir(song.language)
+
+  function toggleVocals() {
+    const player = playerRef.current as any
+    if (!player || !song.instrumentalYoutubeId) return
+    const time = player.getCurrentTime?.() ?? 0
+    const playing = player.getPlayerState?.() === 1
+    const newId = isInstrumental ? song.youtubeId : song.instrumentalYoutubeId
+    if (playing) {
+      player.loadVideoById({ videoId: newId, startSeconds: time })
+    } else {
+      player.cueVideoById({ videoId: newId, startSeconds: time })
+    }
+    setIsInstrumental(prev => !prev)
+  }
+
+  useEffect(() => {
+    setIsInstrumental(false)
+  }, [song.id])
 
   useEffect(() => {
     if (!song.youtubeId || !containerRef.current) return
@@ -112,18 +131,27 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
               {t('common.loading')}
             </p>
           ) : (
-            <div className="space-y-1" dir={dir}>
-              {song.lyrics.map((line, i) => {
-                const isActive = i === activeLine
-                return isActive ? (
-                  <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
-                    {line.text}
-                  </ActiveLyricLine>
-                ) : (
-                  <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
-                )
-              })}
-            </div>
+            <>
+              {song.instrumentalYoutubeId && (
+                <div className="flex justify-end mb-3">
+                  <Button size="sm" variant="outline" onClick={toggleVocals}>
+                    {isInstrumental ? 'With Vocals' : 'Music Only'}
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-1" dir={dir}>
+                {song.lyrics.map((line, i) => {
+                  const isActive = i === activeLine
+                  return isActive ? (
+                    <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
+                      {line.text}
+                    </ActiveLyricLine>
+                  ) : (
+                    <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
+                  )
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>

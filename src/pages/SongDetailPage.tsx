@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Helmet } from 'react-helmet-async'
 import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2 } from 'lucide-react'
 import { fetchSong, fetchSongs } from '@/lib/db'
 import { addRecentSong } from '@/lib/storage'
@@ -65,8 +66,25 @@ export function SongDetailPage() {
 
   const hasTimestamps = song.lyrics.some((l) => l.timestamp !== undefined)
 
+  const baseUrl = import.meta.env.VITE_APP_URL ?? 'https://lyricslabs.com'
+  const canonicalUrl = `${baseUrl}/songs/${song.id}`
+  const pageTitle = `${song.title} — ${song.artist} | LyricsLabs`
+  const pageDesc = `Learn and practice the lyrics to "${song.title}" by ${song.artist}${hasTimestamps ? ' with karaoke-style sync' : ''} on LyricsLabs.`
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="music.song" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDesc} />
+      </Helmet>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0">
           <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate('/')}>

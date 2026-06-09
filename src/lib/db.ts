@@ -385,6 +385,8 @@ function rowToSong(row: Record<string, unknown>): Song {
     createdBy: (row.created_by as string) ?? undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at as string).getTime() : undefined,
     updatedBy: (row.updated_by as string) ?? undefined,
+    instrumentalYoutubeUrl: (row.instrumental_youtube_url as string) ?? undefined,
+    instrumentalYoutubeId: (row.instrumental_youtube_id as string) ?? undefined,
   }
 }
 
@@ -402,5 +404,7 @@ function songToRow(song: Song, userId: string) {
     created_at: new Date(song.createdAt).toISOString(),
     updated_by: userId,
     updated_at: now,
+    instrumental_youtube_url: song.instrumentalYoutubeUrl ?? null,
+    instrumental_youtube_id: song.instrumentalYoutubeId ?? null,
   }
 }

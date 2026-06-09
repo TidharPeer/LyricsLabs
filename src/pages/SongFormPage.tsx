@@ -50,6 +50,8 @@ export function SongFormPage() {
   const [artist, setArtist] = useState('')
   const [language, setLanguage] = useState('en')
   const [youtubeUrl, setYoutubeUrl] = useState(() => searchParams.get('url') ?? '')
+  const [instrumentalUrl, setInstrumentalUrl] = useState('')
+  const [instrumentalUrlError, setInstrumentalUrlError] = useState('')
   const [lyricsText, setLyricsText] = useState('')
   const [urlError, setUrlError] = useState('')
   const [saveError, setSaveError] = useState('')
@@ -79,6 +81,7 @@ export function SongFormPage() {
         setLanguage(song.language)
         setYoutubeUrl(song.youtubeUrl)
         setLyricsText(song.lyrics.map((l) => l.text).join('\n'))
+        if (song.instrumentalYoutubeUrl) setInstrumentalUrl(song.instrumentalYoutubeUrl)
         const origId = extractYouTubeId(song.youtubeUrl) ?? ''
         originalVideoIdRef.current = origId
         lastFetchedId.current = origId  // prevent re-fetch on initial load
@@ -142,10 +145,16 @@ export function SongFormPage() {
 
   async function handleSave() {
     setUrlError('')
+    setInstrumentalUrlError('')
     setSaveError('')
     const youtubeId = extractYouTubeId(youtubeUrl)
     if (youtubeUrl && !youtubeId) {
       setUrlError(t('songForm.invalidUrl'))
+      return
+    }
+    const instrumentalId = instrumentalUrl.trim() ? extractYouTubeId(instrumentalUrl) : undefined
+    if (instrumentalUrl.trim() && !instrumentalId) {
+      setInstrumentalUrlError(t('songForm.invalidUrl'))
       return
     }
 
@@ -167,6 +176,8 @@ export function SongFormPage() {
       youtubeId,
       lyrics,
       createdAt: existing?.createdAt ?? Date.now(),
+      instrumentalYoutubeUrl: instrumentalUrl.trim() || undefined,
+      instrumentalYoutubeId: instrumentalId || undefined,
     }
 
     if (!user) { navigate('/auth'); return }
@@ -245,6 +256,23 @@ export function SongFormPage() {
           />
           <p className="text-xs text-muted-foreground">{t('songForm.urlHelp')}</p>
           {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Instrumental / Karaoke URL</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Input
+            value={instrumentalUrl}
+            onChange={(e) => { setInstrumentalUrl(e.target.value); setInstrumentalUrlError('') }}
+            placeholder="https://www.youtube.com/watch?v=... (optional)"
+          />
+          <p className="text-xs text-muted-foreground">
+            Optional — paste the YouTube URL for the instrumental/karaoke version. It must have the same timing as the original so synced lyrics stay aligned.
+          </p>
+          {instrumentalUrlError && <p className="text-xs text-destructive">{instrumentalUrlError}</p>}
         </CardContent>
       </Card>
 
