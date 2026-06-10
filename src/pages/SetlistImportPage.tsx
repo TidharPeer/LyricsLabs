@@ -170,6 +170,7 @@ export function SetlistImportPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [playlistName, setPlaylistName] = useState('')
+  const [concertDateInput, setConcertDateInput] = useState('')
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
   const [createdPlaylistId, setCreatedPlaylistId] = useState<string | null>(null)
 
@@ -254,6 +255,7 @@ export function SetlistImportPage() {
     setSelectedSetlist(null)
     setCreatedPlaylistId(null)
     setLibraryArtist('')
+    setConcertDateInput('')
     setEnriching(false)
     setNotFound(false)
     setError(null)
@@ -287,6 +289,8 @@ export function SetlistImportPage() {
     setSongStates(states)
     setCheckedSongs(defaultChecked(states))
     setPlaylistName(`${artistName} at ${setlist.venue.name} (${formatSetlistDate(setlist.eventDate)})`)
+    const [dd, mm, yyyy] = setlist.eventDate.split('-')
+    setConcertDateInput(`${yyyy}-${mm}-${dd}`)
     setStep('songs')
     setCreatedPlaylistId(null)
     startYouTubeEnrichment(states, artistName, library)
@@ -388,9 +392,7 @@ export function SetlistImportPage() {
     setCreatingPlaylist(true)
     setError(null)
     try {
-      // Convert DD-MM-YYYY → YYYY-MM-DD for storage
-      const [dd, mm, yyyy] = selectedSetlist.eventDate.split('-')
-      const concertDate = `${yyyy}-${mm}-${dd}`
+      const concertDate = concertDateInput || undefined
       const playlist = await createPlaylist(playlistName.trim(), user.id, concertDate)
       const available = songStates.filter(s => (s.status === 'in-library' || s.status === 'imported') && s.songId)
       for (let i = 0; i < available.length; i++) {
@@ -567,7 +569,10 @@ export function SetlistImportPage() {
       {/* Step 2 */}
       {step === 'concerts' && (
         <section className="space-y-3">
-          <h2 className="font-semibold">Recent Concerts</h2>
+          <div>
+            <h2 className="font-semibold">Recent Concerts</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Pick a recent show as a setlist template — you'll set your actual concert date in the next step.</p>
+          </div>
           {loadingSetlists ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading concerts…
@@ -632,6 +637,15 @@ export function SetlistImportPage() {
             {selectedSetlist.tour && (
               <p className="text-xs text-muted-foreground mt-0.5">{selectedSetlist.tour.name}</p>
             )}
+            <div className="flex items-center gap-2 mt-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">Your concert date:</label>
+              <input
+                type="date"
+                value={concertDateInput}
+                onChange={e => setConcertDateInput(e.target.value)}
+                className="h-7 rounded border bg-background px-2 text-sm text-foreground"
+              />
+            </div>
           </div>
 
           {/* Library artist override */}
