@@ -18,6 +18,7 @@ export interface Song {
   updatedBy?: string
   instrumentalYoutubeUrl?: string
   instrumentalYoutubeId?: string
+  playCount?: number
 }
 
 export interface GameSession {

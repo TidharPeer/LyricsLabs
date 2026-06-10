@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { loadYTApi } from '@/lib/youtube'
 import { Button } from '@/components/ui/button'
 import { lyricsDir } from '@/lib/rtl'
-import { addStars } from '@/lib/db'
+import { addStars, incrementPlayCount } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
 import { ActiveLyricLine, InactiveLyricLine } from '@/styles/lyricLine'
 import type { Song } from '@/types'
@@ -27,6 +27,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   const activeRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const karaokeStarGiven = useRef(false)
+  const playCountGiven = useRef(false)
   // Always call latest onEnded without re-creating the YT player
   const onEndedRef = useRef(onEnded)
   useEffect(() => { onEndedRef.current = onEnded }, [onEnded])
@@ -51,6 +52,8 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
 
   useEffect(() => {
     setIsInstrumental(false)
+    playCountGiven.current = false
+    karaokeStarGiven.current = false
   }, [song.id])
 
   useEffect(() => {
@@ -76,6 +79,10 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
               setCurrentTime(t)
+              if (!playCountGiven.current && t >= 5) {
+                playCountGiven.current = true
+                incrementPlayCount(song.id).catch(() => {})
+              }
               if (!karaokeStarGiven.current && t >= 30 && userId) {
                 karaokeStarGiven.current = true
                 addStars(userId, 1).then(() => onStarEarned?.()).catch(() => {})

@@ -58,6 +58,20 @@ export async function fetchRecentSongs(limit = 6, language?: string): Promise<So
   return data.map(rowToSong)
 }
 
+export async function fetchTopSongs(limit = 20): Promise<Song[]> {
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .order('play_count', { ascending: false })
+    .limit(limit)
+  if (error || !data) return []
+  return data.map(rowToSong)
+}
+
+export async function incrementPlayCount(songId: string): Promise<void> {
+  await supabase.rpc('increment_play_count', { song_id: songId })
+}
+
 export async function fetchSongsByArtist(slug: string): Promise<Song[]> {
   const { data, error } = await supabase
     .from('songs')
@@ -397,6 +411,7 @@ function rowToSong(row: Record<string, unknown>): Song {
     updatedBy: (row.updated_by as string) ?? undefined,
     instrumentalYoutubeUrl: (row.instrumental_youtube_url as string) ?? undefined,
     instrumentalYoutubeId: (row.instrumental_youtube_id as string) ?? undefined,
+    playCount: (row.play_count as number) ?? 0,
   }
 }
 
