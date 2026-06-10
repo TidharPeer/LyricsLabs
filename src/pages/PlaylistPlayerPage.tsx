@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
-import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs } from '@/lib/db'
+import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs, updatePlaylistConcertDate } from '@/lib/db'
+import { DatePickerButton } from '@/components/ui/date-picker'
 import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
@@ -178,26 +179,49 @@ export function PlaylistPlayerPage() {
     return `${days} days until the concert`
   }
 
+  async function handleConcertDateChange(newDate: string) {
+    if (!playlist) return
+    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(() => {})
+    setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined } : prev)
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-5">
       {/* ── Concert prep banner ──────────────────────────────────────────────── */}
-      {concertDate && (
+      {(concertDate || isOwner) && (
         <div className="rounded-xl border bg-primary/5 border-primary/20 px-4 py-3 space-y-2">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Mic2 className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-sm text-primary">{concertCountdown(concertDate)}</span>
+              {concertDate
+                ? <span className="font-semibold text-sm text-primary">{concertCountdown(concertDate)}</span>
+                : <span className="text-sm text-muted-foreground">Set your concert date to track progress</span>
+              }
             </div>
-            <span className="text-sm font-medium">
-              {practicedCount}/{songs.length} songs practiced
-            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              {concertDate && (
+                <span className="text-sm font-medium tabular-nums">
+                  {practicedCount}/{songs.length} practiced
+                </span>
+              )}
+              {isOwner && (
+                <DatePickerButton
+                  value={concertDate ?? ''}
+                  onChange={handleConcertDateChange}
+                  placeholder="Set date"
+                  className="h-8 text-xs"
+                />
+              )}
+            </div>
           </div>
-          <div className="w-full bg-primary/10 rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-500"
-              style={{ width: songs.length > 0 ? `${(practicedCount / songs.length) * 100}%` : '0%' }}
-            />
-          </div>
+          {concertDate && (
+            <div className="w-full bg-primary/10 rounded-full h-2">
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-500"
+                style={{ width: songs.length > 0 ? `${(practicedCount / songs.length) * 100}%` : '0%' }}
+              />
+            </div>
+          )}
         </div>
       )}
 

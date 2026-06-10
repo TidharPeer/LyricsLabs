@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { fetchSongs, saveSongRemote, addStars, createPlaylist, addSongToPlaylist } from '@/lib/db'
+import { DatePickerButton } from '@/components/ui/date-picker'
 import { fetchLyrics } from '@/lib/fetchSongData'
 import { searchYouTubeVideo, searchYouTubeVideoIds } from '@/lib/youtubeDataApi'
 import { useAuth } from '@/contexts/AuthContext'
@@ -638,12 +639,12 @@ export function SetlistImportPage() {
               <p className="text-xs text-muted-foreground mt-0.5">{selectedSetlist.tour.name}</p>
             )}
             <div className="flex items-center gap-2 mt-2">
-              <label className="text-xs text-muted-foreground whitespace-nowrap">Your concert date:</label>
-              <input
-                type="date"
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Your concert date:</span>
+              <DatePickerButton
                 value={concertDateInput}
-                onChange={e => setConcertDateInput(e.target.value)}
-                className="h-7 rounded border bg-background px-2 text-sm text-foreground"
+                onChange={setConcertDateInput}
+                placeholder="Set your concert date"
+                className="h-8 text-sm"
               />
             </div>
           </div>

@@ -332,6 +332,14 @@ export async function deletePlaylist(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function updatePlaylistConcertDate(id: string, concertDate: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('playlists')
+    .update({ concert_date: concertDate ?? null })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function renamePlaylist(id: string, name: string): Promise<void> {
   const { error } = await supabase.from('playlists').update({ name }).eq('id', id)
   if (error) throw new Error(error.message)
