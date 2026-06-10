@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { lyricsDir } from '@/lib/rtl'
 import { addStars } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
-import { ActiveLyricLine, InactiveLyricLine } from '@/styles/lyricLine'
+import { ActiveLyricLine, InactiveLyricLine, PastWord, CurrentWord, FutureWord } from '@/styles/lyricLine'
 import type { Song } from '@/types'
 
 interface Props {
@@ -142,12 +142,31 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
               <div className="space-y-1" dir={dir}>
                 {song.lyrics.map((line, i) => {
                   const isActive = i === activeLine
-                  return isActive ? (
+                  if (!isActive) {
+                    return <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
+                  }
+                  const words = line.text.split(' ')
+                  const nextTs = song.lyrics.slice(i + 1).find(l => l.timestamp !== undefined)?.timestamp
+                  const wordDuration =
+                    line.timestamp !== undefined && nextTs !== undefined
+                      ? (nextTs - line.timestamp) / words.length
+                      : 1.5
+                  const activeWordIdx =
+                    line.timestamp !== undefined
+                      ? Math.min(words.length - 1, Math.floor((currentTime - line.timestamp) / wordDuration))
+                      : words.length - 1
+                  return (
                     <ActiveLyricLine key={line.id} ref={activeRef as React.RefObject<HTMLDivElement>}>
-                      {line.text}
+                      {words.map((word, wIdx) =>
+                        wIdx < activeWordIdx ? (
+                          <PastWord key={wIdx}>{word}</PastWord>
+                        ) : wIdx === activeWordIdx ? (
+                          <CurrentWord key={wIdx}>{word}</CurrentWord>
+                        ) : (
+                          <FutureWord key={wIdx}>{word}</FutureWord>
+                        )
+                      )}
                     </ActiveLyricLine>
-                  ) : (
-                    <InactiveLyricLine key={line.id}>{line.text}</InactiveLyricLine>
                   )
                 })}
               </div>

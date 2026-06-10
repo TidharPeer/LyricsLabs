@@ -4,6 +4,7 @@ import { Music2, ChevronRight, Trash2, CheckCircle2, FileText, MinusCircle, Play
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AddToPlaylistButton } from './AddToPlaylistButton'
+import { toArtistSlug } from '@/lib/utils'
 import type { Song } from '@/types'
 
 interface Props {
@@ -43,7 +44,13 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
                 </button>
               )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+            <Link
+              to={`/artists/${toArtistSlug(song.artist)}`}
+              onClick={e => e.stopPropagation()}
+              className="text-sm text-muted-foreground truncate hover:text-foreground hover:underline transition-colors"
+            >
+              {song.artist}
+            </Link>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-none">

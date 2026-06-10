@@ -6,15 +6,32 @@ export const lyricPulse = keyframes`
 `
 
 export const ActiveLyricLine = styled.div`
-  animation: ${lyricPulse} 1.5s ease-in-out infinite;
   font-size: 1.15rem;
   font-weight: 600;
-  color: var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
   border-inline-start: 3px solid var(--primary);
   border-radius: 0.25rem;
   padding: 0.5rem 0.75rem;
   transition: all 0.2s ease;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.3em;
+  align-items: baseline;
+`
+
+export const PastWord = styled.span`
+  color: var(--primary);
+  opacity: 0.75;
+`
+
+export const CurrentWord = styled.span`
+  animation: ${lyricPulse} 1.5s ease-in-out infinite;
+  color: var(--primary);
+`
+
+export const FutureWord = styled.span`
+  color: var(--muted-foreground);
+  opacity: 0.45;
 `
 
 export const InactiveLyricLine = styled.div`

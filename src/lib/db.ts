@@ -4,6 +4,7 @@
  */
 import { supabase } from './supabase'
 import { getGameSessions } from './storage'
+import { toArtistSlug } from './utils'
 import type { Song, GameSession, UserStats, Playlist } from '@/types'
 
 // ─── Songs ────────────────────────────────────────────────────────────────────
@@ -55,6 +56,15 @@ export async function fetchRecentSongs(limit = 6, language?: string): Promise<So
   const { data, error } = await q
   if (error || !data) return []
   return data.map(rowToSong)
+}
+
+export async function fetchSongsByArtist(slug: string): Promise<Song[]> {
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .order('title', { ascending: true })
+  if (error || !data) return []
+  return data.map(rowToSong).filter(s => toArtistSlug(s.artist) === slug)
 }
 
 export async function fetchDiscoverSongs(limit = 6): Promise<Song[]> {

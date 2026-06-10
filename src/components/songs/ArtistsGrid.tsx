@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { toArtistSlug } from '@/lib/utils'
 import type { Song } from '@/types'
 
 const GRADIENTS = [
@@ -30,9 +32,10 @@ function ArtistCard({ artist, count, youtubeId, onClick }: {
   const showImg = !!youtubeId && !imgFailed
 
   return (
-    <button
+    <Link
+      to={`/artists/${toArtistSlug(artist)}`}
       onClick={onClick}
-      className="group relative aspect-square overflow-hidden rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group relative aspect-square overflow-hidden rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary block"
     >
       {showImg ? (
         <img
@@ -55,7 +58,7 @@ function ArtistCard({ artist, count, youtubeId, onClick }: {
         <p className="truncate text-sm font-semibold leading-snug text-white drop-shadow">{artist}</p>
         <p className="mt-0.5 text-xs text-white/70">{count} song{count !== 1 ? 's' : ''}</p>
       </div>
-    </button>
+    </Link>
   )
 }
 
