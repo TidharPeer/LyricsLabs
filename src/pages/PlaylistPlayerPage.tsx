@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink, Plus, Search, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Shuffle, Share2, SkipBack, SkipForward, Music2, ListMusic, Loader2, ExternalLink, Plus, Search, CheckCircle2, Mic2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -165,8 +165,42 @@ export function PlaylistPlayerPage() {
     )
   }
 
+  const practicedCount = songs.filter(s => (s.playCount ?? 0) > 0).length
+  const concertDate = playlist.concertDate
+
+  function concertCountdown(dateStr: string) {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const concert = new Date(dateStr + 'T00:00:00')
+    const days = Math.round((concert.getTime() - today.getTime()) / 86_400_000)
+    if (days < 0) return `Concert was ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`
+    if (days === 0) return 'Concert is TODAY!!'
+    if (days === 1) return 'Concert is TOMORROW!'
+    return `${days} days until the concert`
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-5">
+      {/* ── Concert prep banner ──────────────────────────────────────────────── */}
+      {concertDate && (
+        <div className="rounded-xl border bg-primary/5 border-primary/20 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Mic2 className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-sm text-primary">{concertCountdown(concertDate)}</span>
+            </div>
+            <span className="text-sm font-medium">
+              {practicedCount}/{songs.length} songs practiced
+            </span>
+          </div>
+          <div className="w-full bg-primary/10 rounded-full h-2">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-500"
+              style={{ width: songs.length > 0 ? `${(practicedCount / songs.length) * 100}%` : '0%' }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/playlists')}>

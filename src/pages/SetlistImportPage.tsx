@@ -388,7 +388,10 @@ export function SetlistImportPage() {
     setCreatingPlaylist(true)
     setError(null)
     try {
-      const playlist = await createPlaylist(playlistName.trim(), user.id)
+      // Convert DD-MM-YYYY → YYYY-MM-DD for storage
+      const [dd, mm, yyyy] = selectedSetlist.eventDate.split('-')
+      const concertDate = `${yyyy}-${mm}-${dd}`
+      const playlist = await createPlaylist(playlistName.trim(), user.id, concertDate)
       const available = songStates.filter(s => (s.status === 'in-library' || s.status === 'imported') && s.songId)
       for (let i = 0; i < available.length; i++) {
         await addSongToPlaylist(playlist.id, available[i].songId!, i)

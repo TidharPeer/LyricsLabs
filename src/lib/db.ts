@@ -285,6 +285,7 @@ export async function fetchPlaylist(id: string): Promise<Playlist | null> {
     createdBy: data.created_by as string,
     createdAt: new Date(data.created_at as string).getTime(),
     songCount: (data.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+    concertDate: (data.concert_date as string) ?? undefined,
   }
 }
 
@@ -302,13 +303,16 @@ export async function fetchPlaylists(userId: string): Promise<Playlist[]> {
     createdBy: row.created_by as string,
     createdAt: new Date(row.created_at as string).getTime(),
     songCount: (row.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+    concertDate: (row.concert_date as string) ?? undefined,
   }))
 }
 
-export async function createPlaylist(name: string, userId: string): Promise<Playlist> {
+export async function createPlaylist(name: string, userId: string, concertDate?: string): Promise<Playlist> {
+  const payload: Record<string, unknown> = { name: name.trim(), created_by: userId }
+  if (concertDate) payload.concert_date = concertDate
   const { data, error } = await supabase
     .from('playlists')
-    .insert({ name: name.trim(), created_by: userId })
+    .insert(payload)
     .select()
     .single()
 
@@ -319,6 +323,7 @@ export async function createPlaylist(name: string, userId: string): Promise<Play
     createdBy: data.created_by as string,
     createdAt: new Date(data.created_at as string).getTime(),
     songCount: 0,
+    concertDate: (data.concert_date as string) ?? undefined,
   }
 }
 

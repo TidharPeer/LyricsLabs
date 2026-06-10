@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ListMusic, Trash2, Loader2, Play, Share2 } from 'lucide-react'
+import { Plus, ListMusic, Trash2, Loader2, Play, Share2, Mic2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,16 @@ import { CreatePlaylistDialog } from './CreatePlaylistDialog'
 import { PlaylistDetailDialog } from './PlaylistDetailDialog'
 import { fetchPlaylists, deletePlaylist } from '@/lib/db'
 import type { Playlist } from '@/types'
+
+function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const concert = new Date(dateStr + 'T00:00:00')
+  const days = Math.round((concert.getTime() - today.getTime()) / 86_400_000)
+  if (days < 0) return { label: `${Math.abs(days)}d ago`, urgent: false }
+  if (days === 0) return { label: 'Today!!', urgent: true }
+  if (days === 1) return { label: 'Tomorrow!', urgent: true }
+  return { label: `In ${days} days`, urgent: days <= 7 }
+}
 
 interface Props {
   userId: string
@@ -114,9 +124,19 @@ export function PlaylistsView({ userId }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{pl.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {t('playlist.songCount', { count: pl.songCount ?? 0 })}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {t('playlist.songCount', { count: pl.songCount ?? 0 })}
+                    </p>
+                    {pl.concertDate && (() => {
+                      const { label, urgent } = concertCountdown(pl.concertDate)
+                      return (
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full ${urgent ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                          <Mic2 className="h-3 w-3" />{label}
+                        </span>
+                      )
+                    })()}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   <Badge variant="outline" className="hidden sm:flex text-xs">

@@ -46,6 +46,7 @@ export interface Playlist {
   createdBy: string
   createdAt: number
   songCount?: number
+  concertDate?: string // ISO date YYYY-MM-DD
 }
 
 export function scoreToStars(score: number): number {
