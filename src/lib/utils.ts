@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function toArtistSlug(name: string): string {
   return name
-    .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '') // keep Unicode letters, digits, spaces, hyphens
+    .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
