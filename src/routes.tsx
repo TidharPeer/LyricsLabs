@@ -16,6 +16,7 @@ import { TermsPage } from '@/pages/TermsPage'
 import { SetlistImportPage } from '@/pages/SetlistImportPage'
 import { ArtistPage } from '@/pages/ArtistPage'
 import { LeaderboardPage } from '@/pages/LeaderboardPage'
+import { ConcertsPage } from '@/pages/ConcertsPage'
 
 export const AppRoutes = memo(function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export const AppRoutes = memo(function AppRoutes() {
         <Route path="/songs/:id/game/:mode" element={<GamePage />} />
         <Route path="/artists/:slug" element={<ArtistPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/concerts" element={<ConcertsPage />} />
         <Route path="/import-concert" element={<SetlistImportPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />

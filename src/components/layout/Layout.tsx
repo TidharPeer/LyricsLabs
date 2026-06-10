@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ListMusic, Plus, Trophy } from 'lucide-react'
+import { Music2, ListMusic, Plus, Trophy, Mic2 } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { LyricsLabLogo } from '@/components/LyricsLabLogo'
@@ -48,6 +48,18 @@ export function Layout() {
               >
                 <ListMusic className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{t('playlist.playlists')}</span>
+              </Link>
+              <Link
+                to="/concerts"
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
+                  location.pathname === '/concerts'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Mic2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Concerts</span>
               </Link>
               <Link
                 to="/leaderboard"
