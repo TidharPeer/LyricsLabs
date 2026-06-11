@@ -101,14 +101,14 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
             </button>
           </div>
         ) : (
-          <div className="flex items-start gap-2 min-w-0">
+          <div className="group/title flex items-start gap-2 min-w-0">
             <h2 className="text-base font-semibold leading-snug flex-1 min-w-0 break-words">
               {playlist.name}
             </h2>
             {isOwner && (
               <button
                 onClick={startEdit}
-                className="text-muted-foreground hover:text-foreground p-1 rounded shrink-0 mt-0.5"
+                className="opacity-0 group-hover/title:opacity-100 text-muted-foreground hover:text-foreground p-1 rounded shrink-0 mt-0.5 transition-opacity"
                 title="Rename"
               >
                 <Pencil className="h-3.5 w-3.5" />
