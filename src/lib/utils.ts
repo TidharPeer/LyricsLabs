@@ -13,13 +13,14 @@ export function cn(...inputs: ClassValue[]) {
  * Returns null when the name doesn't match either pattern (custom names are left alone).
  */
 export function derivePlaylistNameFromDate(currentName: string, formattedDate: string): string | null {
-  // Pattern 1: imported setlist — extract artist (everything before " at ")
-  const atIdx = currentName.indexOf(' at ')
-  if (atIdx !== -1) {
-    const artist = currentName.slice(0, atIdx).trim()
+  // Pattern 1: "Artist at Venue (date)" or truncated "Artist at"
+  // Match everything before the first " at " or " at" at end of string
+  const atMatch = currentName.match(/^(.+?)\s+at(?:\s|$)/)
+  if (atMatch) {
+    const artist = atMatch[1].trim()
     if (artist) return `${artist} (${formattedDate})`
   }
-  // Pattern 2: already renamed — strip trailing "(…)" and reattach new date
+  // Pattern 2: already renamed — "Artist (old date)" → "Artist (new date)"
   const parenMatch = currentName.match(/^(.+?)\s*\([^)]*\)$/)
   if (parenMatch) {
     return `${parenMatch[1].trim()} (${formattedDate})`

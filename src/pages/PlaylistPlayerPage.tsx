@@ -180,15 +180,12 @@ export function PlaylistPlayerPage() {
   }
 
   async function handleConcertDateChange(newDate: string) {
-    if (!playlist) { console.log('[handleConcertDateChange] playlist is null, aborting'); return }
-    console.log('[handleConcertDateChange] newDate:', newDate, '| playlist.name:', playlist.name)
+    if (!playlist) return
     let newName: string | undefined
     if (newDate) {
       const [yyyy, mm, dd] = newDate.split('-').map(Number)
       const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      const derived = derivePlaylistNameFromDate(playlist.name, label)
-      console.log('[handleConcertDateChange] label:', label, '| derived:', derived)
-      newName = derived ?? undefined
+      newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
     }
     setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) } : prev)
     await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))

@@ -39,7 +39,6 @@ export function DatePickerButton({ value, onChange, placeholder = 'Pick a date',
           mode="single"
           selected={selected}
           onSelect={date => {
-            console.log('[DatePicker] selected:', date)
             onChange(date ? format(date, 'yyyy-MM-dd') : '')
             setOpen(false)
           }}
