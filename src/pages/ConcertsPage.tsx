@@ -57,7 +57,17 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
 
   async function handleDateChange(newDate: string) {
     await updatePlaylistConcertDate(playlist.id, newDate || null).catch(() => {})
-    onUpdate({ concertDate: newDate || undefined })
+    let newName: string | undefined
+    if (newDate) {
+      const atIdx = playlist.name.indexOf(' at ')
+      if (atIdx !== -1) {
+        const artist = playlist.name.slice(0, atIdx).trim()
+        const label = format(parseISO(newDate), 'MMM d, yyyy')
+        newName = `${artist} (${label})`
+        await renamePlaylist(playlist.id, newName).catch(() => {})
+      }
+    }
+    onUpdate({ concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) })
   }
 
   return (
@@ -168,6 +178,10 @@ export function ConcertsPage() {
           <p className="text-sm text-muted-foreground">Playlists with a future concert date, sorted by show date</p>
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground border rounded-lg px-3 py-2 bg-muted/30">
+        These playlists are built from <strong>previous concert setlists</strong>. There's no guarantee the same songs will be played at the actual live show — setlists change every night.
+      </p>
 
       {loading && (
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
