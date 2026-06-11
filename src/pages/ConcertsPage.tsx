@@ -7,6 +7,7 @@ import { DatePickerButton } from '@/components/ui/date-picker'
 import { fetchConcertPlaylists, renamePlaylist, updatePlaylistConcertDate } from '@/lib/db'
 import { useAuth } from '@/contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
+import { derivePlaylistNameFromDate } from '@/lib/utils'
 import type { Playlist } from '@/types'
 
 function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
@@ -56,15 +57,14 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
   }
 
   async function handleDateChange(newDate: string) {
-    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(() => {})
+    await updatePlaylistConcertDate(playlist.id, newDate || null)
     let newName: string | undefined
     if (newDate) {
-      const atIdx = playlist.name.indexOf(' at ')
-      if (atIdx !== -1) {
-        const artist = playlist.name.slice(0, atIdx).trim()
-        const label = format(parseISO(newDate), 'MMM d, yyyy')
-        newName = `${artist} (${label})`
-        await renamePlaylist(playlist.id, newName).catch(() => {})
+      const label = format(parseISO(newDate), 'MMM d, yyyy')
+      const derived = derivePlaylistNameFromDate(playlist.name, label)
+      if (derived) {
+        await renamePlaylist(playlist.id, derived)
+        newName = derived
       }
     }
     onUpdate({ concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) })

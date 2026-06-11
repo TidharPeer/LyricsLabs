@@ -16,6 +16,11 @@ interface DatePickerButtonProps {
 export function DatePickerButton({ value, onChange, placeholder = 'Pick a date', className }: DatePickerButtonProps) {
   const selected = value ? parseISO(value) : undefined
 
+  const now = new Date()
+  // Allow picking dates from 2 years ago up to 5 years ahead
+  const startMonth = new Date(now.getFullYear() - 2, 0)
+  const endMonth = new Date(now.getFullYear() + 5, 11)
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -34,6 +39,8 @@ export function DatePickerButton({ value, onChange, placeholder = 'Pick a date',
           selected={selected}
           onSelect={date => onChange(date ? format(date, 'yyyy-MM-dd') : '')}
           captionLayout="dropdown"
+          startMonth={startMonth}
+          endMonth={endMonth}
         />
       </PopoverContent>
     </Popover>

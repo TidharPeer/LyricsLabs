@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs, updatePlaylistConcertDate, renamePlaylist } from '@/lib/db'
 import { DatePickerButton } from '@/components/ui/date-picker'
 import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
-import { cn } from '@/lib/utils'
+import { cn, derivePlaylistNameFromDate } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
 
 function shuffled(length: number): number[] {
@@ -181,16 +181,15 @@ export function PlaylistPlayerPage() {
 
   async function handleConcertDateChange(newDate: string) {
     if (!playlist) return
-    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(() => {})
+    await updatePlaylistConcertDate(playlist.id, newDate || null)
     let newName: string | undefined
     if (newDate) {
-      const atIdx = playlist.name.indexOf(' at ')
-      if (atIdx !== -1) {
-        const artist = playlist.name.slice(0, atIdx).trim()
-        const [yyyy, mm, dd] = newDate.split('-').map(Number)
-        const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        newName = `${artist} (${label})`
-        await renamePlaylist(playlist.id, newName).catch(() => {})
+      const [yyyy, mm, dd] = newDate.split('-').map(Number)
+      const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      const derived = derivePlaylistNameFromDate(playlist.name, label)
+      if (derived) {
+        await renamePlaylist(playlist.id, derived)
+        newName = derived
       }
     }
     setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) } : prev)
