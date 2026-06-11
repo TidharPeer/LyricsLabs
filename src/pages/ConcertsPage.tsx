@@ -1,14 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Mic2, Play, Loader2, CalendarDays, Pencil, Check, X } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Mic2, Play, Loader2, CalendarDays, Pencil, Check, X, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePickerButton } from '@/components/ui/date-picker'
-import { fetchConcertPlaylists, renamePlaylist, updatePlaylistConcertDate } from '@/lib/db'
+import { fetchConcertPlaylists, fetchPastConcertPlaylists, renamePlaylist, updatePlaylistConcertDate } from '@/lib/db'
 import { useAuth } from '@/contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
 import { derivePlaylistNameFromDate } from '@/lib/utils'
 import type { Playlist } from '@/types'
+
+const PAGE_SIZE = 10
 
 function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -23,16 +25,17 @@ function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
 interface ConcertCardProps {
   playlist: Playlist
   isOwner: boolean
+  past: boolean
   onUpdate: (patch: Partial<Playlist>) => void
 }
 
-function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
+function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
   const navigate = useNavigate()
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(playlist.name)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { label, urgent } = concertCountdown(playlist.concertDate!)
+  const countdown = past ? null : concertCountdown(playlist.concertDate!)
 
   function startEdit() {
     setNameValue(playlist.name)
@@ -57,15 +60,12 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
   }
 
   async function handleDateChange(newDate: string) {
-    // Derive before any awaits — captures current playlist.name from closure
     let newName: string | undefined
     if (newDate) {
       const label = format(parseISO(newDate), 'MMM d, yyyy')
       newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
     }
-    // Update UI immediately
     onUpdate({ concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) })
-    // Persist
     await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
     if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
   }
@@ -73,10 +73,12 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
       {/* Countdown strip */}
-      <div className={`px-4 py-1.5 text-xs font-semibold flex items-center gap-1.5 ${urgent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-        <Mic2 className="h-3.5 w-3.5 shrink-0" />
-        {label}
-      </div>
+      {countdown && (
+        <div className={`px-4 py-1.5 text-xs font-semibold flex items-center gap-1.5 ${countdown.urgent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+          <Mic2 className="h-3.5 w-3.5 shrink-0" />
+          {countdown.label}
+        </div>
+      )}
 
       <div className="px-4 py-3 space-y-2">
         {/* Title row */}
@@ -152,18 +154,36 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
   )
 }
 
-export function ConcertsPage() {
+interface ConcertsPageProps {
+  past?: boolean
+}
+
+export function ConcertsPage({ past = false }: ConcertsPageProps) {
   const { user } = useAuth()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
-    fetchConcertPlaylists()
+    setLoading(true)
+    setError(null)
+    const fetch = past ? fetchPastConcertPlaylists : fetchConcertPlaylists
+    fetch()
       .then(setPlaylists)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [past])
+
+  // Reset to page 1 when search changes
+  useEffect(() => { setPage(1) }, [search])
+
+  const filtered = playlists.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function handleUpdate(id: string, patch: Partial<Playlist>) {
     setPlaylists(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
@@ -174,14 +194,41 @@ export function ConcertsPage() {
       <div className="flex items-center gap-3">
         <Mic2 className="h-6 w-6 text-primary shrink-0" />
         <div>
-          <h1 className="text-2xl font-bold">Upcoming Concerts</h1>
-          <p className="text-sm text-muted-foreground">Playlists with a future concert date, sorted by show date</p>
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl font-bold">{past ? 'Past Concerts' : 'Upcoming Concerts'}</h1>
+            {!past && (
+              <Link
+                to="/concerts/past"
+                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                Past concerts
+              </Link>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {past
+              ? 'Playlists with a concert date that has already passed'
+              : 'Playlists with a future concert date, sorted by show date'}
+          </p>
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground border rounded-lg px-3 py-2 bg-muted/30">
-        These playlists are built from <strong>previous concert setlists</strong>. There's no guarantee the same songs will be played at the actual live show — setlists change every night.
-      </p>
+      {!past && (
+        <p className="text-xs text-muted-foreground border rounded-lg px-3 py-2 bg-muted/30">
+          These playlists are built from <strong>previous concert setlists</strong>. There's no guarantee the same songs will be played at the actual live show — setlists change every night.
+        </p>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search concerts..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
       {loading && (
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
@@ -195,26 +242,56 @@ export function ConcertsPage() {
         </div>
       )}
 
-      {!loading && !error && playlists.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
           <Mic2 className="h-10 w-10 text-muted-foreground/30" />
-          <p className="text-muted-foreground">No upcoming concerts yet.</p>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Import a setlist or open a playlist and set a future concert date to see it here.
+          <p className="text-muted-foreground">
+            {search ? 'No concerts match your search.' : past ? 'No past concerts yet.' : 'No upcoming concerts yet.'}
           </p>
+          {!search && !past && (
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Import a setlist or open a playlist and set a future concert date to see it here.
+            </p>
+          )}
         </div>
       )}
 
-      {!loading && playlists.length > 0 && (
+      {!loading && paged.length > 0 && (
         <div className="space-y-3">
-          {playlists.map(pl => (
+          {paged.map(pl => (
             <ConcertCard
               key={pl.id}
               playlist={pl}
               isOwner={pl.createdBy === user?.id}
+              past={past}
               onUpdate={patch => handleUpdate(pl.id, patch)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => p + 1)}
+            disabled={page === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>

@@ -363,6 +363,24 @@ export async function fetchConcertPlaylists(): Promise<Playlist[]> {
   }))
 }
 
+export async function fetchPastConcertPlaylists(): Promise<Playlist[]> {
+  const today = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*, playlist_songs(count)')
+    .lt('concert_date', today)
+    .order('concert_date', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(row => ({
+    id: row.id as string,
+    name: row.name as string,
+    createdBy: row.created_by as string,
+    createdAt: new Date(row.created_at as string).getTime(),
+    songCount: (row.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+    concertDate: (row.concert_date as string) ?? undefined,
+  }))
+}
+
 export async function fetchPlaylistSongs(playlistId: string): Promise<Song[]> {
   const { data, error } = await supabase
     .from('playlist_songs')

@@ -39,6 +39,7 @@ export const AppRoutes = memo(function AppRoutes() {
         <Route path="/artists/:slug" element={<ArtistPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/concerts" element={<ConcertsPage />} />
+        <Route path="/concerts/past" element={<ConcertsPage past />} />
         <Route path="/import-concert" element={<SetlistImportPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
