@@ -196,7 +196,14 @@ export function ConcertsPage({ past = false }: ConcertsPageProps) {
         <div>
           <div className="flex items-baseline gap-3">
             <h1 className="text-2xl font-bold">{past ? 'Past Concerts' : 'Upcoming Concerts'}</h1>
-            {!past && (
+            {past ? (
+              <Link
+                to="/concerts"
+                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                Upcoming concerts
+              </Link>
+            ) : (
               <Link
                 to="/concerts/past"
                 className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
