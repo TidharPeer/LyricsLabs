@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,15 +15,15 @@ interface DatePickerButtonProps {
 }
 
 export function DatePickerButton({ value, onChange, placeholder = 'Pick a date', className }: DatePickerButtonProps) {
+  const [open, setOpen] = useState(false)
   const selected = value ? parseISO(value) : undefined
 
   const now = new Date()
-  // Allow picking dates from 2 years ago up to 5 years ahead
   const startMonth = new Date(now.getFullYear() - 2, 0)
   const endMonth = new Date(now.getFullYear() + 5, 11)
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -37,7 +38,11 @@ export function DatePickerButton({ value, onChange, placeholder = 'Pick a date',
         <Calendar
           mode="single"
           selected={selected}
-          onSelect={date => onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+          onSelect={date => {
+            console.log('[DatePicker] selected:', date)
+            onChange(date ? format(date, 'yyyy-MM-dd') : '')
+            setOpen(false)
+          }}
           captionLayout="dropdown"
           startMonth={startMonth}
           endMonth={endMonth}
