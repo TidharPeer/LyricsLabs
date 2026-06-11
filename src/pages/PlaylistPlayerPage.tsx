@@ -181,18 +181,18 @@ export function PlaylistPlayerPage() {
 
   async function handleConcertDateChange(newDate: string) {
     if (!playlist) return
-    await updatePlaylistConcertDate(playlist.id, newDate || null)
+    // Derive name before any awaits so closure captures current playlist.name
     let newName: string | undefined
     if (newDate) {
       const [yyyy, mm, dd] = newDate.split('-').map(Number)
       const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      const derived = derivePlaylistNameFromDate(playlist.name, label)
-      if (derived) {
-        await renamePlaylist(playlist.id, derived)
-        newName = derived
-      }
+      newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
     }
+    // Update UI immediately so the user sees the change even if a DB call is slow
     setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) } : prev)
+    // Persist — log errors rather than swallowing them silently
+    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
+    if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
   }
 
   return (

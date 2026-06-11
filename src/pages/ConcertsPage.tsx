@@ -57,17 +57,17 @@ function ConcertCard({ playlist, isOwner, onUpdate }: ConcertCardProps) {
   }
 
   async function handleDateChange(newDate: string) {
-    await updatePlaylistConcertDate(playlist.id, newDate || null)
+    // Derive before any awaits — captures current playlist.name from closure
     let newName: string | undefined
     if (newDate) {
       const label = format(parseISO(newDate), 'MMM d, yyyy')
-      const derived = derivePlaylistNameFromDate(playlist.name, label)
-      if (derived) {
-        await renamePlaylist(playlist.id, derived)
-        newName = derived
-      }
+      newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
     }
+    // Update UI immediately
     onUpdate({ concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) })
+    // Persist
+    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
+    if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
   }
 
   return (
