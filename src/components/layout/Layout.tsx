@@ -23,7 +23,7 @@ export function Layout() {
             <span>{t('app.name')}</span>
           </Link>
 
-          {!isAuth && user && (
+          {!isAuth && (
             <nav className="flex items-center gap-1 rounded-lg bg-muted p-1">
               <Link
                 to="/"
@@ -37,23 +37,25 @@ export function Layout() {
                 <Music2 className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{t('playlist.songs')}</span>
               </Link>
-              <Link
-                to="/playlists"
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
-                  location.pathname === '/playlists'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <ListMusic className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">{t('playlist.playlists')}</span>
-              </Link>
+              {user && (
+                <Link
+                  to="/playlists"
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
+                    location.pathname === '/playlists'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <ListMusic className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{t('playlist.playlists')}</span>
+                </Link>
+              )}
               <Link
                 to="/concerts"
                 className={cn(
                   'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
-                  location.pathname === '/concerts'
+                  location.pathname === '/concerts' || location.pathname === '/concerts/past'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}

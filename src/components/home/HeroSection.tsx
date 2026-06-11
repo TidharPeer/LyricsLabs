@@ -98,6 +98,20 @@ export function HeroSection({ query, setQuery, user, onDismiss, collapsed, place
                 <Star className="h-4 w-4" /> Earn Stars
               </span>
             </div>
+
+            <Link
+              to="/concerts"
+              className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 text-left hover:bg-accent transition-colors w-full max-w-sm"
+            >
+              <Mic2 className="h-8 w-8 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">Going to a live concert soon?</p>
+                <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                  Learn the setlist before the show — sing along like you know every word.
+                </p>
+              </div>
+            </Link>
+
             <div className="flex items-center gap-3 flex-wrap justify-center">
               {!user && (
                 <Button asChild>
