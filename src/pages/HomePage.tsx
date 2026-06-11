@@ -556,12 +556,10 @@ export function HomePage() {
         />
       )}
 
-      {user && (
-        <YouTubeSearchDialog
-          open={searchDialogOpen}
-          onOpenChange={setSearchDialogOpen}
-        />
-      )}
+      <YouTubeSearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+      />
 
       {user && editingSong && (
         <EditSongDialog

@@ -13,10 +13,17 @@ export function AuthCallbackPage() {
       const params = new URLSearchParams(window.location.search)
       const code = params.get('code')
       const type = params.get('type')
+      const postAuthUrl = sessionStorage.getItem('llabs_post_auth_url')
+      function resolveRedirect(recovery: boolean) {
+        if (recovery) return '/auth?reset=true'
+        if (postAuthUrl) { sessionStorage.removeItem('llabs_post_auth_url'); return postAuthUrl }
+        return '/'
+      }
+
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) { setError(error.message); return }
-        navigate(type === 'recovery' ? '/auth?reset=true' : '/', { replace: true })
+        navigate(resolveRedirect(type === 'recovery'), { replace: true })
         return
       }
 
@@ -27,7 +34,7 @@ export function AuthCallbackPage() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
           if (session) {
             subscription.unsubscribe()
-            navigate(isRecovery ? '/auth?reset=true' : '/', { replace: true })
+            navigate(resolveRedirect(isRecovery), { replace: true })
           }
         })
         // Safety timeout: if we never get a session, go back to /auth

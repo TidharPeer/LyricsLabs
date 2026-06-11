@@ -65,10 +65,10 @@ export function SongFormPage() {
   const lastFetchedId = useRef<string>('')
   const originalVideoIdRef = useRef<string>('')
 
-  // Redirect to auth if not signed in
+  // For edit mode only: must be signed in
   useEffect(() => {
-    if (!user) navigate('/auth', { replace: true })
-  }, [user, navigate])
+    if (isEdit && !user) navigate('/auth', { replace: true })
+  }, [isEdit, user, navigate])
 
   // Load existing song from Supabase when editing
   useEffect(() => {
@@ -180,7 +180,11 @@ export function SongFormPage() {
       instrumentalYoutubeId: instrumentalId || undefined,
     }
 
-    if (!user) { navigate('/auth'); return }
+    if (!user) {
+      sessionStorage.setItem('llabs_post_auth_url', window.location.pathname + window.location.search)
+      navigate('/auth')
+      return
+    }
 
     try {
       const saved = await saveSongRemote(song, user.id)
@@ -217,6 +221,13 @@ export function SongFormPage() {
           {existing ? t('songForm.editTitle') : t('songForm.addTitle')}
         </h1>
       </div>
+
+      {!user && !isEdit && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm flex items-center justify-between gap-3">
+          <span className="text-amber-800 dark:text-amber-200">You're adding as a guest — you'll sign in when you save.</span>
+          <a href="/auth" className="font-medium underline underline-offset-2 shrink-0 text-amber-900 dark:text-amber-100 hover:text-foreground transition-colors">Sign in now</a>
+        </div>
+      )}
 
       {saveError && (
         <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
