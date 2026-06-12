@@ -91,6 +91,17 @@ export function Layout() {
                 <Plus className="h-4 w-4" />
               </button>
             )}
+            {!isAuth && import.meta.env.VITE_SUPPORT_URL && (
+              <a
+                href={import.meta.env.VITE_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Buy me a coffee"
+                className="flex items-center justify-center h-8 w-8 rounded-full border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <Coffee className="h-4 w-4" />
+              </a>
+            )}
             {!isAuth && <UserMenu />}
           </div>
         </div>
