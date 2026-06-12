@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2, ListMusic } from 'lucide-react'
-import { fetchSong, fetchSongs } from '@/lib/db'
-import { addRecentSong } from '@/lib/storage'
+import { fetchSong, fetchSongs, fetchPlaylist, fetchPlaylistSongs } from '@/lib/db'
+import { addRecentSong, getRecentPlaylistId } from '@/lib/storage'
+import type { Playlist } from '@/types'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -18,13 +19,12 @@ export function SongDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
-  const fromPlaylist = (location.state as { fromPlaylist?: { id: string; name: string } } | null)?.fromPlaylist
   const { user, refreshStats } = useAuth()
 
   const [song, setSong] = useState<Song | null>(null)
   const [loading, setLoading] = useState(true)
   const [artistSongs, setArtistSongs] = useState<Song[]>([])
+  const [backPlaylist, setBackPlaylist] = useState<Playlist | null>(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -48,6 +48,20 @@ export function SongDetailPage() {
       }
     })
   }, [id])
+
+  // Check if the user's last playlist has songs by this artist
+  useEffect(() => {
+    if (!song || !user) return
+    const playlistId = getRecentPlaylistId(user.id)
+    if (!playlistId) return
+    Promise.all([fetchPlaylist(playlistId), fetchPlaylistSongs(playlistId)])
+      .then(([pl, plSongs]) => {
+        if (!pl) return
+        const norm = song.artist.toLowerCase()
+        if (plSongs.some(s => s.artist.toLowerCase() === norm)) setBackPlaylist(pl)
+      })
+      .catch(() => {})
+  }, [song?.id, user?.id])
 
   const handleStarEarned = useCallback(() => { refreshStats() }, [refreshStats])
 
@@ -148,16 +162,15 @@ export function SongDetailPage() {
         <TabsContent value="karaoke" className="mt-4 space-y-6">
           <KaraokeView song={song} userId={user?.id} onStarEarned={handleStarEarned} />
 
-          {fromPlaylist && (
+          {backPlaylist && (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-muted-foreground">Your playlist</h3>
               <Link
-                to={`/playlists/${fromPlaylist.id}/play`}
-                state={{ fromPlaylist }}
+                to={`/playlists/${backPlaylist.id}/play`}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg border hover:bg-muted/50 transition-colors"
               >
                 <ListMusic className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="flex-1 min-w-0 text-sm font-medium truncate">{fromPlaylist.name}</span>
+                <span className="flex-1 min-w-0 text-sm font-medium truncate">{backPlaylist.name}</span>
                 <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0 rotate-180" />
               </Link>
             </div>

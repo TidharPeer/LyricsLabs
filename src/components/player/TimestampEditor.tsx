@@ -185,6 +185,77 @@ function LiveSyncTab({ song, lines, setLines }: {
   )
 }
 
+// ─── Preview Tab ─────────────────────────────────────────────────────────────
+
+function PreviewTab({ song, lines }: { song: Song; lines: LyricLine[] }) {
+  const { playerRef, containerRef, ready } = useYTPlayer(song.id + '-preview', song.youtubeId)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const listRef = useRef<HTMLDivElement>(null)
+  const dir = lyricsDir(song.language)
+  const stampedCount = lines.filter(l => l.timestamp !== undefined).length
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const t = playerRef.current?.getCurrentTime?.() ?? 0
+      let active = -1
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].timestamp !== undefined && lines[i].timestamp! <= t) active = i
+      }
+      setActiveIdx(active)
+    }, 100)
+    return () => clearInterval(id)
+  }, [lines, playerRef])
+
+  useEffect(() => {
+    const container = listRef.current
+    if (!container || activeIdx < 0) return
+    const el = container.children[activeIdx] as HTMLElement | undefined
+    if (!el) return
+    const containerRect = container.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const elTop = elRect.top - containerRect.top + container.scrollTop
+    container.scrollTo({ top: Math.max(0, elTop - container.clientHeight / 2 + el.clientHeight / 2), behavior: 'smooth' })
+  }, [activeIdx])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2 items-start">
+      <VideoSlot song={song} containerRef={containerRef} />
+      <div className="space-y-2">
+        {stampedCount === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No timestamps yet — add some in Live Sync or Manual Edit first.
+          </p>
+        ) : (
+          <>
+            {!ready && song.youtubeId && (
+              <p className="text-xs text-center text-muted-foreground">Loading player…</p>
+            )}
+            <div ref={listRef} dir={dir} className="rounded-lg border divide-y max-h-56 lg:max-h-80 overflow-y-auto">
+              {lines.map((line, i) => {
+                const isActive = i === activeIdx
+                const hasStamp = line.timestamp !== undefined
+                return (
+                  <div
+                    key={line.id}
+                    className={`flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                      isActive ? 'bg-primary/10 font-semibold text-primary' : !hasStamp ? 'opacity-30' : ''
+                    }`}
+                  >
+                    <span className="shrink-0 text-xs font-mono text-muted-foreground w-10">
+                      {hasStamp ? formatTime(line.timestamp!) : '—'}
+                    </span>
+                    <span className="flex-1 truncate">{line.text}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Manual Edit Tab ──────────────────────────────────────────────────────────
 
 function ManualEditTab({ song, lines, setLines }: {
@@ -320,6 +391,7 @@ export function TimestampEditor({ song }: Props) {
         <TabsList>
           <TabsTrigger value="live">{t('timestamp.liveSyncMode')}</TabsTrigger>
           <TabsTrigger value="manual">{t('timestamp.manualMode')}</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="live" className="mt-4">
@@ -330,6 +402,11 @@ export function TimestampEditor({ song }: Props) {
         <TabsContent value="manual" className="mt-4">
           <p className="text-sm text-muted-foreground mb-3">{t('timestamp.instructions')}</p>
           <ManualEditTab song={song} lines={lines} setLines={setLines} />
+        </TabsContent>
+
+        <TabsContent value="preview" className="mt-4">
+          <p className="text-sm text-muted-foreground mb-3">Play the video to test your current timestamps in real time — no save needed.</p>
+          <PreviewTab song={song} lines={lines} />
         </TabsContent>
       </Tabs>
 
