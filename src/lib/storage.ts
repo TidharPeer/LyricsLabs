@@ -53,6 +53,28 @@ export function getRecentPlaylistId(userId: string): string | null {
   } catch { return null }
 }
 
+// ─── Practiced songs (per user, persisted) ───────────────────────────────────
+
+function practicedKey(userId: string) { return `practiced:${userId}` }
+
+export function markPracticed(userId: string, songId: string): void {
+  try {
+    const key = practicedKey(userId)
+    const existing: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
+    if (!existing.includes(songId)) {
+      existing.push(songId)
+      localStorage.setItem(key, JSON.stringify(existing))
+    }
+  } catch { /* ignore */ }
+}
+
+export function getPracticedSongIds(userId: string): Set<string> {
+  try {
+    const ids: string[] = JSON.parse(localStorage.getItem(practicedKey(userId)) ?? '[]')
+    return new Set(ids)
+  } catch { return new Set() }
+}
+
 // ─── YouTube ──────────────────────────────────────────────────────────────────
 
 export function extractYouTubeId(url: string): string {

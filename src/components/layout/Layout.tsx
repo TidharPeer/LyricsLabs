@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ListMusic, Plus, Mic2 } from 'lucide-react'
+import { Music2, ListMusic, Plus, Mic2, Coffee } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { LyricsLabLogo } from '@/components/LyricsLabLogo'
@@ -89,6 +89,20 @@ export function Layout() {
           <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
           <span>·</span>
           <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+          {import.meta.env.VITE_SUPPORT_URL && (
+            <>
+              <span>·</span>
+              <a
+                href={import.meta.env.VITE_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+              >
+                <Coffee className="h-3 w-3" />
+                Buy me a coffee
+              </a>
+            </>
+          )}
         </div>
       </footer>
     </div>

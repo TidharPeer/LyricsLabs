@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Search, Mic2, Gamepad2, Star, X } from 'lucide-react'
+import { Search, Mic2, Gamepad2, Star, X, Coffee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LyricsLabLogo } from '@/components/LyricsLabLogo'
@@ -111,6 +111,23 @@ export function HeroSection({ query, setQuery, user, onDismiss, collapsed, place
                 </p>
               </div>
             </Link>
+
+            {import.meta.env.VITE_SUPPORT_URL && (
+              <a
+                href={import.meta.env.VITE_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 text-left hover:bg-accent transition-colors w-full max-w-sm"
+              >
+                <Coffee className="h-8 w-8 text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">Enjoying LyricsLabs?</p>
+                  <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                    It's free — but a coffee helps keep it alive. ☕
+                  </p>
+                </div>
+              </a>
+            )}
 
             <div className="flex items-center gap-3 flex-wrap justify-center">
               {!user && (

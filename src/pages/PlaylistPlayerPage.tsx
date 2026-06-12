@@ -9,7 +9,7 @@ import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs, updatePlaylistConcertDate, renamePlaylist, setUserConcertDate, getUserConcertDate } from '@/lib/db'
 import { DatePickerButton } from '@/components/ui/date-picker'
-import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
+import { setRecentPlaylist, addRecentSong, markPracticed, getPracticedSongIds } from '@/lib/storage'
 import { cn, derivePlaylistNameFromDate } from '@/lib/utils'
 import type { Song, Playlist } from '@/types'
 
@@ -33,6 +33,7 @@ export function PlaylistPlayerPage() {
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
   const [userConcertDate, setUserConcertDate_] = useState<string | null>(null)
+  const [practicedIds, setPracticedIds] = useState<Set<string>>(new Set())
   const [showAdd, setShowAdd] = useState(false)
   const [addQuery, setAddQuery] = useState('')
   const [addResults, setAddResults] = useState<Song[]>([])
@@ -75,9 +76,18 @@ export function PlaylistPlayerPage() {
   const currentIdx = order ? order[pos] : pos
   const currentSong: Song | null = songs[currentIdx] ?? null
 
-  // Track each song played inside a playlist as recently played
+  // Load practiced songs from localStorage when user is known
   useEffect(() => {
-    if (currentSong && user) addRecentSong(user.id, currentSong.id)
+    if (user) setPracticedIds(getPracticedSongIds(user.id))
+  }, [user?.id])
+
+  // Track each song played inside a playlist as recently played + practiced
+  useEffect(() => {
+    if (currentSong && user) {
+      addRecentSong(user.id, currentSong.id)
+      markPracticed(user.id, currentSong.id)
+      setPracticedIds(prev => new Set([...prev, currentSong.id]))
+    }
   }, [currentSong?.id, user?.id])
 
   const canPrev = pos > 0
@@ -170,7 +180,7 @@ export function PlaylistPlayerPage() {
     )
   }
 
-  const practicedCount = songs.filter(s => (s.playCount ?? 0) > 0).length
+  const practicedCount = songs.filter(s => practicedIds.has(s.id)).length
   // Personal date takes priority over the owner's canonical date
   const effectiveConcertDate = userConcertDate ?? playlist.concertDate ?? null
 
