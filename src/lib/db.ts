@@ -381,6 +381,55 @@ export async function fetchPastConcertPlaylists(): Promise<Playlist[]> {
   }))
 }
 
+export async function setUserConcertDate(userId: string, playlistId: string, date: string | null): Promise<void> {
+  if (!date) {
+    const { error } = await supabase
+      .from('user_concert_dates')
+      .delete()
+      .eq('user_id', userId)
+      .eq('playlist_id', playlistId)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('user_concert_dates')
+      .upsert({ user_id: userId, playlist_id: playlistId, concert_date: date })
+    if (error) throw new Error(error.message)
+  }
+}
+
+export async function getUserConcertDate(userId: string, playlistId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('user_concert_dates')
+    .select('concert_date')
+    .eq('user_id', userId)
+    .eq('playlist_id', playlistId)
+    .maybeSingle()
+  return (data?.concert_date as string) ?? null
+}
+
+export async function fetchMyConcertPlaylists(userId: string): Promise<Array<Playlist & { userConcertDate: string }>> {
+  const today = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('user_concert_dates')
+    .select('concert_date, playlist_id, playlists(id, name, created_by, created_at, concert_date, playlist_songs(count))')
+    .eq('user_id', userId)
+    .gte('concert_date', today)
+    .order('concert_date', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(row => {
+    const pl = row.playlists as Record<string, unknown>
+    return {
+      id: pl.id as string,
+      name: pl.name as string,
+      createdBy: pl.created_by as string,
+      createdAt: new Date(pl.created_at as string).getTime(),
+      songCount: (pl.playlist_songs as { count: number }[])?.[0]?.count ?? 0,
+      concertDate: (pl.concert_date as string) ?? undefined,
+      userConcertDate: row.concert_date as string,
+    }
+  })
+}
+
 export async function fetchPlaylistSongs(playlistId: string): Promise<Song[]> {
   const { data, error } = await supabase
     .from('playlist_songs')

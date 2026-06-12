@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { KaraokeView } from '@/components/player/KaraokeView'
 import { useAuth } from '@/contexts/AuthContext'
-import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs, updatePlaylistConcertDate, renamePlaylist } from '@/lib/db'
+import { fetchPlaylist, fetchPlaylistSongs, addSongToPlaylist, searchSongs, fetchSongs, updatePlaylistConcertDate, renamePlaylist, setUserConcertDate, getUserConcertDate } from '@/lib/db'
 import { DatePickerButton } from '@/components/ui/date-picker'
 import { setRecentPlaylist, addRecentSong } from '@/lib/storage'
 import { cn, derivePlaylistNameFromDate } from '@/lib/utils'
@@ -32,6 +32,7 @@ export function PlaylistPlayerPage() {
   const [playlist, setPlaylist] = useState<Playlist | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
+  const [userConcertDate, setUserConcertDate_] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [addQuery, setAddQuery] = useState('')
   const [addResults, setAddResults] = useState<Song[]>([])
@@ -52,7 +53,10 @@ export function PlaylistPlayerPage() {
     Promise.all([fetchPlaylist(id), fetchPlaylistSongs(id)]).then(([pl, sl]) => {
       setPlaylist(pl)
       setSongs(sl)
-      if (pl && user) setRecentPlaylist(user.id, pl.id)
+      if (pl && user) {
+        setRecentPlaylist(user.id, pl.id)
+        getUserConcertDate(user.id, id).then(d => setUserConcertDate_(d))
+      }
       const validStart = Math.max(0, Math.min(startIdx, Math.max(0, sl.length - 1)))
       if (startShuffled && sl.length > 0) {
         const newOrder = shuffled(sl.length)
@@ -167,7 +171,8 @@ export function PlaylistPlayerPage() {
   }
 
   const practicedCount = songs.filter(s => (s.playCount ?? 0) > 0).length
-  const concertDate = playlist.concertDate
+  // Personal date takes priority over the owner's canonical date
+  const effectiveConcertDate = userConcertDate ?? playlist.concertDate ?? null
 
   function concertCountdown(dateStr: string) {
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -180,48 +185,54 @@ export function PlaylistPlayerPage() {
   }
 
   async function handleConcertDateChange(newDate: string) {
-    if (!playlist) return
-    let newName: string | undefined
-    if (newDate) {
-      const [yyyy, mm, dd] = newDate.split('-').map(Number)
-      const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
+    if (!playlist || !user) return
+    // Personal date — always updated for any logged-in user
+    setUserConcertDate_(newDate || null)
+    await setUserConcertDate(user.id, playlist.id, newDate || null).catch(e => console.error('personal concert date update failed:', e))
+    // Canonical date + auto-rename — owner only
+    if (isOwner) {
+      let newName: string | undefined
+      if (newDate) {
+        const [yyyy, mm, dd] = newDate.split('-').map(Number)
+        const label = new Date(yyyy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
+      }
+      setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) } : prev)
+      await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
+      if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
     }
-    setPlaylist(prev => prev ? { ...prev, concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) } : prev)
-    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
-    if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
       {/* ── Concert prep banner ──────────────────────────────────────────────── */}
-      {(concertDate || isOwner) && (
+      {(effectiveConcertDate || user) && (
         <div className="rounded-xl border bg-primary/5 border-primary/20 px-4 py-3 space-y-2">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 min-w-0">
               <Mic2 className="h-4 w-4 text-primary shrink-0" />
-              {concertDate
-                ? <span className="font-semibold text-sm text-primary">{concertCountdown(concertDate)}</span>
-                : <span className="text-sm text-muted-foreground">Set your concert date to track progress</span>
+              {effectiveConcertDate
+                ? <span className="font-semibold text-sm text-primary">{concertCountdown(effectiveConcertDate)}</span>
+                : <span className="text-sm text-muted-foreground">Set your concert date to track your progress</span>
               }
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              {concertDate && (
+              {effectiveConcertDate && (
                 <span className="text-sm font-medium tabular-nums">
                   {practicedCount}/{songs.length} practiced
                 </span>
               )}
-              {isOwner && (
+              {user && (
                 <DatePickerButton
-                  value={concertDate ?? ''}
+                  value={effectiveConcertDate ?? ''}
                   onChange={handleConcertDateChange}
-                  placeholder="Set date"
+                  placeholder="Set my date"
                   className="h-8 text-xs"
                 />
               )}
             </div>
           </div>
-          {concertDate && (
+          {effectiveConcertDate && (
             <div className="w-full bg-primary/10 rounded-full h-2">
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-500"

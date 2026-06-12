@@ -4,13 +4,18 @@ import { Mic2, Play, Loader2, CalendarDays, Pencil, Check, X, Search, ChevronLef
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePickerButton } from '@/components/ui/date-picker'
-import { fetchConcertPlaylists, fetchPastConcertPlaylists, renamePlaylist, updatePlaylistConcertDate } from '@/lib/db'
+import {
+  fetchConcertPlaylists, fetchPastConcertPlaylists, fetchMyConcertPlaylists,
+  renamePlaylist, updatePlaylistConcertDate, setUserConcertDate,
+} from '@/lib/db'
 import { useAuth } from '@/contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
 import { derivePlaylistNameFromDate } from '@/lib/utils'
 import type { Playlist } from '@/types'
 
 const PAGE_SIZE = 10
+
+type PlaylistWithPersonal = Playlist & { userConcertDate?: string }
 
 function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -23,19 +28,22 @@ function concertCountdown(dateStr: string): { label: string; urgent: boolean } {
 }
 
 interface ConcertCardProps {
-  playlist: Playlist
+  playlist: PlaylistWithPersonal
   isOwner: boolean
   past: boolean
-  onUpdate: (patch: Partial<Playlist>) => void
+  userId: string | undefined
+  onUpdate: (patch: Partial<PlaylistWithPersonal>) => void
 }
 
-function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
+function ConcertCard({ playlist, isOwner, past, userId, onUpdate }: ConcertCardProps) {
   const navigate = useNavigate()
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(playlist.name)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const countdown = past ? null : concertCountdown(playlist.concertDate!)
+  // Personal date takes priority for countdown
+  const displayDate = playlist.userConcertDate ?? playlist.concertDate
+  const countdown = (past || !displayDate) ? null : concertCountdown(displayDate)
 
   function startEdit() {
     setNameValue(playlist.name)
@@ -45,29 +53,31 @@ function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
 
   async function commitName() {
     const trimmed = nameValue.trim()
-    if (!trimmed || trimmed === playlist.name) {
-      setEditingName(false)
-      return
-    }
+    if (!trimmed || trimmed === playlist.name) { setEditingName(false); return }
     await renamePlaylist(playlist.id, trimmed).catch(() => {})
     onUpdate({ name: trimmed })
     setEditingName(false)
   }
 
-  function cancelEdit() {
-    setNameValue(playlist.name)
-    setEditingName(false)
-  }
+  function cancelEdit() { setNameValue(playlist.name); setEditingName(false) }
 
   async function handleDateChange(newDate: string) {
-    let newName: string | undefined
-    if (newDate) {
-      const label = format(parseISO(newDate), 'MMM d, yyyy')
-      newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
+    if (!userId) return
+    // Always update personal date
+    onUpdate({ userConcertDate: newDate || undefined })
+    await setUserConcertDate(userId, playlist.id, newDate || null).catch(e => console.error('personal date update failed:', e))
+    // Owner also updates canonical date + auto-rename
+    if (isOwner) {
+      let newName: string | undefined
+      if (newDate) {
+        const label = format(parseISO(newDate), 'MMM d, yyyy')
+        newName = derivePlaylistNameFromDate(playlist.name, label) ?? undefined
+      }
+      if (newName) onUpdate({ name: newName, concertDate: newDate || undefined })
+      else onUpdate({ concertDate: newDate || undefined })
+      await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
+      if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
     }
-    onUpdate({ concertDate: newDate || undefined, ...(newName ? { name: newName } : {}) })
-    await updatePlaylistConcertDate(playlist.id, newDate || null).catch(e => console.error('concert date update failed:', e))
-    if (newName) await renamePlaylist(playlist.id, newName).catch(e => console.error('playlist rename failed:', e))
   }
 
   return (
@@ -88,31 +98,18 @@ function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
               ref={inputRef}
               value={nameValue}
               onChange={e => setNameValue(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') commitName()
-                if (e.key === 'Escape') cancelEdit()
-              }}
+              onKeyDown={e => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') cancelEdit() }}
               className="h-8 text-base font-semibold flex-1"
               autoFocus
             />
-            <button onClick={commitName} className="text-green-600 hover:text-green-700 p-1 rounded">
-              <Check className="h-4 w-4" />
-            </button>
-            <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground p-1 rounded">
-              <X className="h-4 w-4" />
-            </button>
+            <button onClick={commitName} className="text-green-600 hover:text-green-700 p-1 rounded"><Check className="h-4 w-4" /></button>
+            <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground p-1 rounded"><X className="h-4 w-4" /></button>
           </div>
         ) : (
           <div className="group/title flex items-center gap-1.5 min-w-0">
-            <h2 className="text-base font-semibold leading-snug min-w-0 break-words">
-              {playlist.name}
-            </h2>
+            <h2 className="text-base font-semibold leading-snug min-w-0 break-words">{playlist.name}</h2>
             {isOwner && (
-              <button
-                onClick={startEdit}
-                className="opacity-0 group-hover/title:opacity-100 text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 transition-opacity"
-                title="Rename"
-              >
+              <button onClick={startEdit} className="opacity-0 group-hover/title:opacity-100 text-muted-foreground hover:text-foreground p-0.5 rounded shrink-0 transition-opacity" title="Rename">
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             )}
@@ -121,11 +118,16 @@ function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
 
         {/* Meta row */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1">
-            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-            {format(parseISO(playlist.concertDate!), 'MMMM d, yyyy')}
-          </span>
-          <span>·</span>
+          {displayDate && (
+            <span className="flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+              {format(parseISO(displayDate), 'MMMM d, yyyy')}
+              {playlist.userConcertDate && !isOwner && (
+                <span className="text-xs">(your date)</span>
+              )}
+            </span>
+          )}
+          {displayDate && <span>·</span>}
           <span>{playlist.songCount ?? 0} songs</span>
         </div>
 
@@ -140,11 +142,11 @@ function ConcertCard({ playlist, isOwner, past, onUpdate }: ConcertCardProps) {
             <Play className="h-3.5 w-3.5" />
             Play & Practice
           </Button>
-          {isOwner && (
+          {userId && (
             <DatePickerButton
-              value={playlist.concertDate ?? ''}
+              value={displayDate ?? ''}
               onChange={handleDateChange}
-              placeholder="Change date"
+              placeholder={isOwner ? 'Change date' : 'Track this concert'}
               className="h-8 text-xs"
             />
           )}
@@ -160,7 +162,8 @@ interface ConcertsPageProps {
 
 export function ConcertsPage({ past = false }: ConcertsPageProps) {
   const { user } = useAuth()
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [myPlaylists, setMyPlaylists] = useState<PlaylistWithPersonal[]>([])
+  const [allPlaylists, setAllPlaylists] = useState<PlaylistWithPersonal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -169,24 +172,52 @@ export function ConcertsPage({ past = false }: ConcertsPageProps) {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    const fetch = past ? fetchPastConcertPlaylists : fetchConcertPlaylists
-    fetch()
-      .then(setPlaylists)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [past])
+    setSearch('')
+    setPage(1)
 
-  // Reset to page 1 when search changes
+    const fetchAll = past ? fetchPastConcertPlaylists : fetchConcertPlaylists
+    const fetches: Promise<unknown>[] = [fetchAll()]
+    if (!past && user) fetches.push(fetchMyConcertPlaylists(user.id))
+
+    Promise.all(fetches)
+      .then(([all, mine]) => {
+        setAllPlaylists(all as PlaylistWithPersonal[])
+        setMyPlaylists((mine as PlaylistWithPersonal[] | undefined) ?? [])
+      })
+      .catch(e => setError((e as Error).message))
+      .finally(() => setLoading(false))
+  }, [past, user?.id])
+
   useEffect(() => { setPage(1) }, [search])
 
-  const filtered = playlists.filter(p =>
+  // All Upcoming: exclude playlists already shown in "My Concerts" to avoid duplication
+  const myIds = new Set(myPlaylists.map(p => p.id))
+  const filteredAll = allPlaylists.filter(p =>
+    !myIds.has(p.id) &&
     p.name.toLowerCase().includes(search.toLowerCase())
   )
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const filteredMy = myPlaylists.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
 
-  function handleUpdate(id: string, patch: Partial<Playlist>) {
-    setPlaylists(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
+  const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE))
+  const pagedAll = filteredAll.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function handleMyUpdate(id: string, patch: Partial<PlaylistWithPersonal>) {
+    setMyPlaylists(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
+    // If this concert is also in allPlaylists, sync canonical fields there too
+    setAllPlaylists(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
+  }
+
+  function handleAllUpdate(id: string, patch: Partial<PlaylistWithPersonal>) {
+    setAllPlaylists(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
+    // If user just set a personal date, move to My Concerts
+    if (patch.userConcertDate) {
+      const target = allPlaylists.find(p => p.id === id)
+      if (target && !myIds.has(id)) {
+        setMyPlaylists(prev => [...prev, { ...target, ...patch }].sort((a, b) =>
+          (a.userConcertDate ?? '').localeCompare(b.userConcertDate ?? '')
+        ))
+      }
+    }
   }
 
   return (
@@ -197,25 +228,13 @@ export function ConcertsPage({ past = false }: ConcertsPageProps) {
           <div className="flex items-baseline gap-3">
             <h1 className="text-2xl font-bold">{past ? 'Past Concerts' : 'Upcoming Concerts'}</h1>
             {past ? (
-              <Link
-                to="/concerts"
-                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
-              >
-                Upcoming concerts
-              </Link>
+              <Link to="/concerts" className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors">Upcoming concerts</Link>
             ) : (
-              <Link
-                to="/concerts/past"
-                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
-              >
-                Past concerts
-              </Link>
+              <Link to="/concerts/past" className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors">Past concerts</Link>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {past
-              ? 'Playlists with a concert date that has already passed'
-              : 'Playlists with a future concert date, sorted by show date'}
+            {past ? 'Playlists with a concert date that has already passed' : 'Playlists with a future concert date, sorted by show date'}
           </p>
         </div>
       </div>
@@ -229,12 +248,7 @@ export function ConcertsPage({ past = false }: ConcertsPageProps) {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search concerts..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Search concerts..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       {loading && (
@@ -244,62 +258,81 @@ export function ConcertsPage({ past = false }: ConcertsPageProps) {
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">
-          {error}
-        </div>
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{error}</div>
       )}
 
-      {!loading && !error && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
-          <Mic2 className="h-10 w-10 text-muted-foreground/30" />
-          <p className="text-muted-foreground">
-            {search ? 'No concerts match your search.' : past ? 'No past concerts yet.' : 'No upcoming concerts yet.'}
-          </p>
-          {!search && !past && (
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Import a setlist or open a playlist and set a future concert date to see it here.
-            </p>
+      {!loading && !error && (
+        <>
+          {/* ── My Concerts ──────────────────────────────────────────────────── */}
+          {!past && filteredMy.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">My Concerts</h2>
+              {filteredMy.map(pl => (
+                <ConcertCard
+                  key={pl.id}
+                  playlist={pl}
+                  isOwner={pl.createdBy === user?.id}
+                  past={false}
+                  userId={user?.id}
+                  onUpdate={patch => handleMyUpdate(pl.id, patch)}
+                />
+              ))}
+            </div>
           )}
-        </div>
-      )}
 
-      {!loading && paged.length > 0 && (
-        <div className="space-y-3">
-          {paged.map(pl => (
-            <ConcertCard
-              key={pl.id}
-              playlist={pl}
-              isOwner={pl.createdBy === user?.id}
-              past={past}
-              onUpdate={patch => handleUpdate(pl.id, patch)}
-            />
-          ))}
-        </div>
-      )}
+          {/* ── All Upcoming / Past ───────────────────────────────────────────── */}
+          {(pagedAll.length > 0 || past) && (
+            <div className="space-y-3">
+              {!past && filteredMy.length > 0 && (
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">All Upcoming</h2>
+              )}
+              {pagedAll.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
+                  <Mic2 className="h-10 w-10 text-muted-foreground/30" />
+                  <p className="text-muted-foreground">
+                    {search ? 'No concerts match your search.' : past ? 'No past concerts yet.' : 'No other upcoming concerts.'}
+                  </p>
+                </div>
+              )}
+              {pagedAll.map(pl => (
+                <ConcertCard
+                  key={pl.id}
+                  playlist={pl}
+                  isOwner={pl.createdBy === user?.id}
+                  past={past}
+                  userId={user?.id}
+                  onUpdate={patch => handleAllUpdate(pl.id, patch)}
+                />
+              ))}
+            </div>
+          )}
 
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(p => p - 1)}
-            disabled={page === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(p => p + 1)}
-            disabled={page === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+          {/* Empty state — nothing at all */}
+          {filteredMy.length === 0 && filteredAll.length === 0 && !past && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center gap-3">
+              <Mic2 className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-muted-foreground">{search ? 'No concerts match your search.' : 'No upcoming concerts yet.'}</p>
+              {!search && (
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Import a setlist or open a playlist and set a future concert date to see it here.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Pagination for All section */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground tabular-nums">{page} / {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
