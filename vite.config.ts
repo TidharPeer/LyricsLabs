@@ -29,9 +29,9 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//],
+          // Don't cache HTML — Vercel serves fresh index.html for all routes.
+          // Caching HTML causes stale JS chunk references after deploys (blank page).
+          globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
           cleanupOutdatedCaches: true,
         },
       }),
