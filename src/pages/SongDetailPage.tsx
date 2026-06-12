@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
-import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2, ListMusic } from 'lucide-react'
 import { fetchSong, fetchSongs } from '@/lib/db'
 import { addRecentSong } from '@/lib/storage'
 import { lyricsDir } from '@/lib/rtl'
@@ -18,6 +18,8 @@ export function SongDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromPlaylist = (location.state as { fromPlaylist?: { id: string; name: string } } | null)?.fromPlaylist
   const { user, refreshStats } = useAuth()
 
   const [song, setSong] = useState<Song | null>(null)
@@ -145,6 +147,21 @@ export function SongDetailPage() {
 
         <TabsContent value="karaoke" className="mt-4 space-y-6">
           <KaraokeView song={song} userId={user?.id} onStarEarned={handleStarEarned} />
+
+          {fromPlaylist && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">Your playlist</h3>
+              <Link
+                to={`/playlists/${fromPlaylist.id}/play`}
+                state={{ fromPlaylist }}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg border hover:bg-muted/50 transition-colors"
+              >
+                <ListMusic className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="flex-1 min-w-0 text-sm font-medium truncate">{fromPlaylist.name}</span>
+                <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0 rotate-180" />
+              </Link>
+            </div>
+          )}
 
           {artistSongs.length > 0 && (
             <div className="space-y-2">

@@ -246,7 +246,7 @@ export function PlaylistPlayerPage() {
             variant="outline"
             size="sm"
             className="gap-1.5 shrink-0"
-            onClick={() => navigate(`/songs/${currentSong.id}`)}
+            onClick={() => navigate(`/songs/${currentSong.id}`, { state: { fromPlaylist: { id, name: playlist.name } } })}
             title="Go to song"
           >
             <ExternalLink className="h-4 w-4" />
@@ -356,7 +356,7 @@ export function PlaylistPlayerPage() {
                   </Badge>
                 )}
                 <button
-                  onClick={e => { e.stopPropagation(); navigate(`/songs/${song.id}`) }}
+                  onClick={e => { e.stopPropagation(); navigate(`/songs/${song.id}`, { state: { fromPlaylist: { id, name: playlist.name } } }) }}
                   className="flex sm:hidden group-hover/queue:flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0"
                   title="Go to this song"
                 >

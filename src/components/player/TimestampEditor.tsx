@@ -279,6 +279,14 @@ export function TimestampEditor({ song }: Props) {
     setLines(prev => prev.map(l => ({ ...l, timestamp: undefined })))
   }
 
+  function shiftTimestamps(delta: number) {
+    setLines(prev => prev.map(l =>
+      l.timestamp !== undefined
+        ? { ...l, timestamp: Math.max(0, Math.round((l.timestamp + delta) * 10) / 10) }
+        : l
+    ))
+  }
+
   async function handleSave() {
     if (!user) return
     setSaving(true)
@@ -325,17 +333,37 @@ export function TimestampEditor({ song }: Props) {
         </TabsContent>
       </Tabs>
 
-      <div className="flex items-center justify-between border-t pt-4 gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 text-muted-foreground hover:text-destructive"
-          onClick={clearAllTimestamps}
-          disabled={lines.every(l => l.timestamp === undefined)}
-        >
-          <RotateCcw className="h-4 w-4" />
-          Clear all timestamps
-        </Button>
+      <div className="flex items-center justify-between border-t pt-4 gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-muted-foreground hover:text-destructive"
+            onClick={clearAllTimestamps}
+            disabled={lines.every(l => l.timestamp === undefined)}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Clear all
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => shiftTimestamps(-0.5)}
+            disabled={lines.every(l => l.timestamp === undefined)}
+            title="Shift all timestamps -0.5s"
+          >
+            −0.5s
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => shiftTimestamps(0.5)}
+            disabled={lines.every(l => l.timestamp === undefined)}
+            title="Shift all timestamps +0.5s"
+          >
+            +0.5s
+          </Button>
+        </div>
 
         {saveError && <p className="text-xs text-red-500 flex-1 text-center">{saveError}</p>}
 
