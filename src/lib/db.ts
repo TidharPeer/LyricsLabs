@@ -417,7 +417,7 @@ export async function fetchMyConcertPlaylists(userId: string): Promise<Array<Pla
     .order('concert_date', { ascending: true })
   if (error) throw new Error(error.message)
   return (data ?? []).map(row => {
-    const pl = row.playlists as Record<string, unknown>
+    const pl = row.playlists as unknown as Record<string, unknown>
     return {
       id: pl.id as string,
       name: pl.name as string,

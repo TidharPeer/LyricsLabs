@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS user_concert_dates (
 
 ALTER TABLE user_concert_dates ENABLE ROW LEVEL SECURITY;
 
+-- Grant read/write to authenticated users (required for raw SQL migrations)
+GRANT SELECT, INSERT, UPDATE, DELETE ON user_concert_dates TO authenticated;
+
 CREATE POLICY "Users manage own concert dates"
   ON user_concert_dates
   FOR ALL
-  USING (auth.uid() = user_id);
+  USING     (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
