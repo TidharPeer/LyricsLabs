@@ -559,6 +559,7 @@ export function HomePage() {
       <YouTubeSearchDialog
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
+        initialSong={query}
       />
 
       {user && editingSong && (

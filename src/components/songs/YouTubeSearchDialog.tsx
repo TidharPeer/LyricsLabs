@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Search, Loader2, Music, LogIn } from 'lucide-react'
 import {
@@ -19,13 +19,15 @@ const GUEST_KEY = 'llabs_guest_add_used'
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialSong?: string
 }
 
-export function YouTubeSearchDialog({ open, onOpenChange }: Props) {
+export function YouTubeSearchDialog({ open, onOpenChange, initialSong }: Props) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [artist, setArtist] = useState('')
   const [song, setSong] = useState('')
+  const songInputRef = useRef<HTMLInputElement>(null)
   const [results, setResults] = useState<YTVideo[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -35,13 +37,19 @@ export function YouTubeSearchDialog({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (!open) return
     setArtist('')
-    setSong('')
+    setSong(initialSong ?? '')
     setResults([])
     setError('')
     setSearched(false)
-    // Check guest limit on open so the blocked state is fresh
     setGuestBlocked(!user && !!localStorage.getItem(GUEST_KEY))
-  }, [open, user])
+    // Focus and move cursor to end so user can keep typing
+    setTimeout(() => {
+      const el = songInputRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }, 0)
+  }, [open, user, initialSong])
 
   async function handleSearch() {
     const query = [artist.trim(), song.trim()].filter(Boolean).join(' ')
@@ -101,11 +109,11 @@ export function YouTubeSearchDialog({ open, onOpenChange }: Props) {
               <div className="space-y-1.5">
                 <Label>Song title</Label>
                 <Input
+                  ref={songInputRef}
                   placeholder="e.g. Let It Be"
                   value={song}
                   onChange={e => setSong(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  autoFocus
                 />
               </div>
               <div className="space-y-1.5">
