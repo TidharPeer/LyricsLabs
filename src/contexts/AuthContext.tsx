@@ -60,7 +60,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    // When the PWA returns to the foreground (e.g. after OAuth in a browser tab),
+    // re-check the session so the user is picked up without a full reload.
+    const handleVisibility = () => {
+      if (!document.hidden) supabase.auth.getSession()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
@@ -74,11 +84,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: isStandalone,
+      },
     })
-    return { error: error?.message ?? null }
+    if (error) return { error: error.message ?? null }
+    // In standalone PWA mode, open OAuth in a regular browser tab so the redirect
+    // flow works correctly. The visibilitychange listener above re-checks the session
+    // when the user switches back to the PWA after completing sign-in.
+    if (isStandalone && data?.url) {
+      window.open(data.url, '_blank', 'noopener,noreferrer')
+    }
+    return { error: null }
   }, [])
 
   const signOut = useCallback(async () => {
