@@ -99,21 +99,21 @@ export function YouTubeSearchDialog({ open, onOpenChange }: Props) {
           <>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label>Artist</Label>
-                <Input
-                  placeholder="e.g. The Beatles"
-                  value={artist}
-                  onChange={e => setArtist(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label>Song title</Label>
                 <Input
                   placeholder="e.g. Let It Be"
                   value={song}
                   onChange={e => setSong(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Artist</Label>
+                <Input
+                  placeholder="e.g. The Beatles"
+                  value={artist}
+                  onChange={e => setArtist(e.target.value)}
                   onKeyDown={handleKeyDown}
                 />
               </div>
