@@ -8,6 +8,21 @@ import { LyricsLabLogo } from '@/components/LyricsLabLogo'
 import { useAuthUser } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 
+function NavItem({ to, active, icon, label }: { to: string; active: boolean; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors',
+        active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {icon}
+      {label}
+    </Link>
+  )
+}
+
 export function Layout() {
   const { t } = useTranslation()
   const { user } = useAuthUser()
@@ -24,44 +39,44 @@ export function Layout() {
           </Link>
 
           {!isAuth && (
-            <nav className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            <nav className="hidden sm:flex items-center gap-1 rounded-lg bg-muted p-1">
               <Link
                 to="/"
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                   location.pathname === '/'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Music2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">{t('playlist.songs')}</span>
+                {t('playlist.songs')}
               </Link>
               {user && (
                 <Link
                   to="/playlists"
                   className={cn(
-                    'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     location.pathname === '/playlists'
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   <ListMusic className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden sm:inline">{t('playlist.playlists')}</span>
+                  {t('playlist.playlists')}
                 </Link>
               )}
               <Link
                 to="/concerts"
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                   location.pathname === '/concerts' || location.pathname === '/concerts/past'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Mic2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">Concerts</span>
+                Concerts
               </Link>
             </nav>
           )}
@@ -80,12 +95,12 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="container py-6"><Outlet /></main>
+      <main className="container py-6 pb-24 sm:pb-6"><Outlet /></main>
       {user && <YouTubeSearchDialog open={addSongOpen} onOpenChange={setAddSongOpen} />}
-      <footer className="border-t mt-8 py-4">
+      <footer className="border-t mt-8 py-4 hidden sm:block">
         <div className="container flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} LyricsLabs</span>
-          <span className="hidden sm:inline">·</span>
+          <span>·</span>
           <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
           <span>·</span>
           <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
@@ -105,6 +120,33 @@ export function Layout() {
           )}
         </div>
       </footer>
+
+      {!isAuth && (
+        <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur">
+          <div className="flex items-stretch">
+            <NavItem
+              to="/"
+              active={location.pathname === '/'}
+              icon={<Music2 className="h-5 w-5" />}
+              label={t('playlist.songs')}
+            />
+            {user && (
+              <NavItem
+                to="/playlists"
+                active={location.pathname === '/playlists'}
+                icon={<ListMusic className="h-5 w-5" />}
+                label={t('playlist.playlists')}
+              />
+            )}
+            <NavItem
+              to="/concerts"
+              active={location.pathname === '/concerts' || location.pathname === '/concerts/past'}
+              icon={<Mic2 className="h-5 w-5" />}
+              label="Concerts"
+            />
+          </div>
+        </nav>
+      )}
     </div>
   )
 }
