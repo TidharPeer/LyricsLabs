@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon, Share2 } from 'lucide-react'
+import { ArrowLeft, Star, Flame, Copy, Check, Music2, Sun, Moon, Share2, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getUserStats, getRecentSessions, getReferralLink, fetchSongs } from '@/lib/db'
+import { useSongMastery } from '@/hooks/useSongMastery'
 import type { UserStats, GameSession, Song } from '@/types'
 
 const MODE_LABEL: Record<string, string> = {
@@ -28,6 +29,7 @@ export function ProfilePage() {
   const [sessions, setSessions] = useState<GameSession[]>([])
   const [songMap, setSongMap] = useState<Record<string, Song>>({})
   const [copied, setCopied] = useState(false)
+  const { masteredCount } = useSongMastery(user?.id)
 
   useEffect(() => {
     if (!user) { navigate('/auth', { replace: true }); return }
@@ -92,12 +94,19 @@ export function ProfilePage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card>
             <CardContent className="pt-4 text-center">
               <Star className="h-5 w-5 text-amber-500 fill-amber-400 mx-auto mb-1" />
               <p className="text-2xl font-bold">{stats.stars}</p>
               <p className="text-xs text-muted-foreground">{t('profile.stars')}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 text-center">
+              <Trophy className="h-5 w-5 text-indigo-500 mx-auto mb-1" />
+              <p className="text-2xl font-bold">{masteredCount}</p>
+              <p className="text-xs text-muted-foreground">Mastered</p>
             </CardContent>
           </Card>
           <Card>

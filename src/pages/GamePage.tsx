@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { fetchSong, addStars, saveGameSessionRemote } from '@/lib/db'
+import { getDailyChallenge, setDailyChallengeComplete } from '@/lib/storage'
 import { findActiveLine } from '@/lib/activeLine'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -42,9 +43,19 @@ export function GamePage() {
   const handleGameComplete = useCallback(async (score: number, sessionId: string) => {
     const stars = Math.max(1, scoreToStars(score)) // always at least 1 star for completing
     if (user) {
-      if (stars > 0) {
-        await addStars(user.id, stars)
-        setStarsEarned(stars)
+      let totalStars = stars
+
+      // Daily challenge bonus: +3 stars if this song is today's uncompleted challenge
+      const challenge = getDailyChallenge(user.id)
+      const isChallenge = challenge && !challenge.completed && challenge.songId === song?.id
+      if (isChallenge) {
+        totalStars += 3
+        setDailyChallengeComplete(user.id, score, totalStars)
+      }
+
+      if (totalStars > 0) {
+        await addStars(user.id, totalStars)
+        setStarsEarned(totalStars)
         setShowStars(true)
       }
       await saveGameSessionRemote({
@@ -53,7 +64,7 @@ export function GamePage() {
         mode: mode as GameMode,
         completedAt: Date.now(),
         score,
-        starsEarned: stars,
+        starsEarned: totalStars,
       }, user.id)
       await refreshStats()
     } else {

@@ -2,14 +2,17 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
-import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2, ListMusic } from 'lucide-react'
+import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2, ListMusic, Star } from 'lucide-react'
 import { fetchSong, fetchSongs, fetchPlaylist, fetchPlaylistSongs } from '@/lib/db'
 import { addRecentSong, getRecentPlaylistId } from '@/lib/storage'
+import { useSongMastery } from '@/hooks/useSongMastery'
+import { scoreToStars } from '@/types'
 import type { Playlist } from '@/types'
 import { lyricsDir } from '@/lib/rtl'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { KaraokeView } from '@/components/player/KaraokeView'
@@ -64,6 +67,7 @@ export function SongDetailPage() {
   }, [song?.id, user?.id])
 
   const handleStarEarned = useCallback(() => { refreshStats() }, [refreshStats])
+  const { getModeBestScores, getMasteryStatus } = useSongMastery(user?.id)
 
   if (loading) {
     return <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">Loading…</div>
@@ -241,6 +245,52 @@ export function SongDetailPage() {
 
         <TabsContent value="practice" className="mt-4">
           <div className="space-y-3">
+            {/* Per-mode mastery progress — only shown for logged-in users */}
+            {user && song && (() => {
+              const scores = getModeBestScores(song.id)
+              const status = getMasteryStatus(song.id)
+              const modesWithScores = Object.values(scores).filter(s => s !== null).length
+              if (modesWithScores === 0) return null
+              return (
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">Your progress</p>
+                    {status === 'mastered' && (
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" /> Mastered
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { mode: 'memory-burst', label: t('game.memoryBurst') },
+                      { mode: 'fill-blank', label: t('game.fillBlank') },
+                      { mode: 'fadeout', label: t('game.fadeout') },
+                      { mode: 'line-completion', label: t('game.lineCompletion') },
+                      { mode: 'back-chain', label: t('game.backChain') },
+                    ].map(({ mode, label }) => {
+                      const best = scores[mode]
+                      const stars = best !== null ? scoreToStars(best) : 0
+                      return (
+                        <div key={mode} className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground w-32 shrink-0 truncate">{label}</span>
+                          {best !== null ? (
+                            <>
+                              <Progress value={best} className="flex-1 h-1.5" />
+                              <span className="text-xs tabular-nums text-muted-foreground w-8 text-right">{best}%</span>
+                              <span className="text-xs text-amber-500 w-8">{stars > 0 ? `${stars}★` : ''}</span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">not played</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
             <p className="text-sm text-muted-foreground">Choose a practice mode:</p>
             <Separator />
             {[

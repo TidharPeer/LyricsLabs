@@ -75,6 +75,61 @@ export function getPracticedSongIds(userId: string): Set<string> {
   } catch { return new Set() }
 }
 
+// ─── Daily Challenge ─────────────────────────────────────────────────────────
+
+interface DailyChallengeEntry {
+  songId: string
+  date: string
+  completed: boolean
+  score?: number
+  starsEarned?: number
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+}
+
+function hashStr(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+function dailyChallengeKey(userId: string, date: string) {
+  return `dailyChallenge:${userId}:${date}`
+}
+
+export function initDailyChallenge(userId: string, practicedIds: string[]): string | null {
+  if (practicedIds.length === 0) return null
+  const today = todayStr()
+  const key = dailyChallengeKey(userId, today)
+  try {
+    const existing = localStorage.getItem(key)
+    if (existing) return JSON.parse(existing).songId as string
+    const idx = hashStr(userId + today) % practicedIds.length
+    const songId = practicedIds[idx]
+    const entry: DailyChallengeEntry = { songId, date: today, completed: false }
+    localStorage.setItem(key, JSON.stringify(entry))
+    return songId
+  } catch { return null }
+}
+
+export function getDailyChallenge(userId: string): DailyChallengeEntry | null {
+  try {
+    const raw = localStorage.getItem(dailyChallengeKey(userId, todayStr()))
+    return raw ? (JSON.parse(raw) as DailyChallengeEntry) : null
+  } catch { return null }
+}
+
+export function setDailyChallengeComplete(userId: string, score: number, starsEarned: number): void {
+  try {
+    const today = todayStr()
+    const key = dailyChallengeKey(userId, today)
+    const existing = getDailyChallenge(userId) ?? { songId: '', date: today, completed: false }
+    localStorage.setItem(key, JSON.stringify({ ...existing, completed: true, score, starsEarned }))
+  } catch { /* ignore */ }
+}
+
 // ─── YouTube ──────────────────────────────────────────────────────────────────
 
 export function extractYouTubeId(url: string): string {

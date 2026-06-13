@@ -209,7 +209,7 @@ export async function saveGameSessionRemote(
   const { error } = await supabase.from('game_sessions').insert({
     id: session.id,
     user_id: userId,
-    song_id: null,
+    song_id: session.songId || null,
     mode: session.mode,
     score: session.score,
     stars_earned: session.starsEarned ?? 0,
@@ -236,6 +236,30 @@ export async function getRecentSessions(userId: string, limit = 20): Promise<Gam
     score: r.score,
     starsEarned: r.stars_earned,
   }))
+}
+
+export async function getBestScoresByMode(
+  userId: string
+): Promise<{ songId: string; mode: string; bestScore: number }[]> {
+  const { data } = await supabase
+    .from('game_sessions')
+    .select('song_id, mode, score')
+    .eq('user_id', userId)
+    .not('song_id', 'is', null)
+
+  if (!data) return []
+
+  // Group by song_id + mode, keep max score
+  const map = new Map<string, number>()
+  for (const row of data) {
+    const key = `${row.song_id}|${row.mode}`
+    map.set(key, Math.max(map.get(key) ?? 0, row.score))
+  }
+
+  return [...map.entries()].map(([key, bestScore]) => {
+    const [songId, mode] = key.split('|')
+    return { songId, mode, bestScore }
+  })
 }
 
 // ─── Referrals ────────────────────────────────────────────────────────────────

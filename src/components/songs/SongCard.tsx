@@ -1,20 +1,22 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Music2, ChevronRight, Trash2, CheckCircle2, FileText, MinusCircle, Play, Pencil } from 'lucide-react'
+import { Music2, ChevronRight, Trash2, CheckCircle2, FileText, MinusCircle, Play, Pencil, Star } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AddToPlaylistButton } from './AddToPlaylistButton'
 import { toArtistSlug } from '@/lib/utils'
 import type { Song } from '@/types'
+import type { MasteryStatus } from '@/hooks/useSongMastery'
 
 interface Props {
   song: Song
   onDelete?: () => void
   onEdit?: () => void
   userId?: string
+  masteryStatus?: MasteryStatus
 }
 
-export function SongCard({ song, onDelete, onEdit, userId }: Props) {
+export function SongCard({ song, onDelete, onEdit, userId, masteryStatus }: Props) {
   const { t } = useTranslation()
   const hasSynced = song.lyrics.some(l => l.timestamp !== undefined)
   const hasLyrics = song.lyrics.length > 0
@@ -54,6 +56,15 @@ export function SongCard({ song, onDelete, onEdit, userId }: Props) {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
+            {masteryStatus === 'mastered' && (
+              <span className="hidden sm:flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                Mastered
+              </span>
+            )}
+            {masteryStatus === 'in-progress' && (
+              <Star className="hidden sm:block h-3.5 w-3.5 text-muted-foreground/40" />
+            )}
             <Badge variant="secondary" className="hidden sm:flex">
               {t(`languages.${song.language}`, song.language)}
             </Badge>

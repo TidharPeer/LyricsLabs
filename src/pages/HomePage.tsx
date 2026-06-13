@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { HeroSection } from '@/components/home/HeroSection'
 import { RecentlyPlayed } from '@/components/home/RecentlyPlayed'
 import { DiscoverSection } from '@/components/home/DiscoverSection'
+import { LandingPage } from '@/components/home/LandingPage'
+import { DailyChallenge } from '@/components/home/DailyChallenge'
 import { SongCard } from '@/components/songs/SongCard'
 import { BandSearchDialog } from '@/components/songs/BandSearchDialog'
 import { EditSongDialog } from '@/components/songs/EditSongDialog'
@@ -15,6 +17,7 @@ import { YouTubeSearchDialog } from '@/components/songs/YouTubeSearchDialog'
 import { ArtistsGrid } from '@/components/songs/ArtistsGrid'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchSongs, fetchMySongs, searchSongs, deleteSongRemote } from '@/lib/db'
+import { useSongMastery } from '@/hooks/useSongMastery'
 import type { Song } from '@/types'
 
 
@@ -172,6 +175,7 @@ export function HomePage() {
   const [editingSong, setEditingSong] = useState<Song | null>(null)
   const [sortBy, setSortBy] = useState<'az' | 'recent'>('az')
   const [currentPage, setCurrentPage] = useState(1)
+  const { getMasteryStatus } = useSongMastery(user?.id)
 
   const PAGE_SIZE = 20
 
@@ -391,8 +395,9 @@ export function HomePage() {
       {/* Recently played + discover — shown on home view with no active search */}
       {!showBrowse && (
         <>
+          {user && <DailyChallenge userId={user.id} />}
           {user && <RecentlyPlayed userId={user.id} />}
-          <DiscoverSection />
+          {user ? <DiscoverSection /> : <LandingPage />}
         </>
       )}
 
@@ -510,6 +515,7 @@ export function HomePage() {
                 key={song.id}
                 song={song}
                 userId={user?.id}
+                masteryStatus={user ? getMasteryStatus(song.id) : undefined}
                 onDelete={(view === 'mine' || !!tabArtist) ? () => handleDelete(song.id) : undefined}
                 onEdit={(view === 'mine' || !!tabArtist) ? () => setEditingSong(song) : undefined}
               />
