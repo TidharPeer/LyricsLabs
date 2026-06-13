@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mic2, Play, Loader2, CalendarDays, Pencil, Check, X, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Mic2, Play, Loader2, CalendarDays, Pencil, Check, X, Search, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { DatePickerButton } from '@/components/ui/date-picker'
 import {
   fetchConcertPlaylists, fetchPastConcertPlaylists, fetchMyConcertPlaylists,
-  renamePlaylist, updatePlaylistConcertDate, setUserConcertDate,
+  renamePlaylist, updatePlaylistConcertDate, setUserConcertDate, fetchPlaylistSongs,
 } from '@/lib/db'
+import { getPracticedSongIds } from '@/lib/storage'
 import { useAuth } from '@/contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
 import { derivePlaylistNameFromDate } from '@/lib/utils'
@@ -40,6 +42,15 @@ function ConcertCard({ playlist, isOwner, past, userId, onUpdate }: ConcertCardP
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(playlist.name)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [practicedCount, setPracticedCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    fetchPlaylistSongs(playlist.id).then(songs => {
+      const practiced = getPracticedSongIds(userId)
+      setPracticedCount(songs.filter(s => practiced.has(s.id)).length)
+    }).catch(() => {})
+  }, [playlist.id, userId])
 
   // Personal date takes priority for countdown
   const displayDate = playlist.userConcertDate ?? playlist.concertDate
@@ -130,6 +141,22 @@ function ConcertCard({ playlist, isOwner, past, userId, onUpdate }: ConcertCardP
           {displayDate && <span>·</span>}
           <span>{playlist.songCount ?? 0} songs</span>
         </div>
+
+        {/* Practice progress */}
+        {userId && practicedCount !== null && (playlist.songCount ?? 0) > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              {practicedCount === (playlist.songCount ?? 0) ? (
+                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Concert Ready!
+                </span>
+              ) : (
+                <span>{practicedCount} / {playlist.songCount ?? 0} songs practiced</span>
+              )}
+            </div>
+            <Progress value={Math.round((practicedCount / (playlist.songCount ?? 1)) * 100)} className="h-1.5" />
+          </div>
+        )}
 
         {/* Action row */}
         <div className="flex items-center gap-2 pt-1 flex-wrap">

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getUserStats, getRecentSessions, getReferralLink, fetchSongs } from '@/lib/db'
 import { useSongMastery } from '@/hooks/useSongMastery'
+import { AchievementBadges } from '@/components/profile/AchievementBadges'
 import type { UserStats, GameSession, Song } from '@/types'
 
 const MODE_LABEL: Record<string, string> = {
@@ -125,6 +126,8 @@ export function ProfilePage() {
           </Card>
         </div>
       )}
+
+      <AchievementBadges userId={user.id} stats={stats} masteredCount={masteredCount} />
 
       {/* Share */}
       <Card>
