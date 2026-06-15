@@ -74,7 +74,14 @@ export function LineCompletion({ song, onBack, onComplete, activeLine = -1 }: Pr
   const isCurrentLineNowPlaying = activeGameLineIndex === current
 
   function checkAnswer() {
-    const isCorrect = normalize(input).startsWith(normalize(answer).slice(0, Math.floor(normalize(answer).length * 0.7)))
+    const normPrompt = normalize(prompt)
+    const normAnswer = normalize(answer)
+    let normInput = normalize(input)
+    // Accept full line (prompt + answer) — strip the visible prefix if the user typed it
+    if (normInput.startsWith(normPrompt)) {
+      normInput = normInput.slice(normPrompt.length).trim()
+    }
+    const isCorrect = normInput.startsWith(normAnswer.slice(0, Math.floor(normAnswer.length * 0.7)))
     setResults((r) => [...r, isCorrect])
     setRevealed(true)
   }

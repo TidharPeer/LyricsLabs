@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import { ArrowLeft, Edit, Clock, Gamepad2, Share2, Music2, CheckCircle2, ListMusic, Star } from 'lucide-react'
@@ -22,6 +22,7 @@ export function SongDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, refreshStats } = useAuth()
 
   const [song, setSong] = useState<Song | null>(null)
@@ -156,7 +157,7 @@ export function SongDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue={hasTimestamps ? 'karaoke' : 'lyrics'}>
+      <Tabs defaultValue={(location.state as { tab?: string } | null)?.tab ?? (hasTimestamps ? 'karaoke' : 'lyrics')}>
         <TabsList>
           <TabsTrigger value="karaoke">{t('songDetail.karaoke')}</TabsTrigger>
           <TabsTrigger value="lyrics">{t('songDetail.lyrics')}</TabsTrigger>

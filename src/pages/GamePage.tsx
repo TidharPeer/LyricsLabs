@@ -88,7 +88,7 @@ export function GamePage() {
   }
 
   function handleBack() {
-    navigate(`/songs/${song!.id}`)
+    navigate(`/songs/${song!.id}`, { state: { tab: 'practice' } })
   }
 
   const modeLabels: Record<GameMode, string> = {

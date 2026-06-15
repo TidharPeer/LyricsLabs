@@ -48,6 +48,25 @@ export function MemoryBurst({ song, onBack, onComplete, playerControls }: Props)
     }
   }, [current, phase, playerControls, done, lines])
 
+  // Keyboard shortcuts: Enter/Space advance through the game without needing the mouse
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      if (phase === 'reading') {
+        e.preventDefault()
+        startTyping()
+      } else if (phase === 'typing' && revealed && !autoAdvancing) {
+        e.preventDefault()
+        nextLine()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  // startTyping / nextLine are redefined each render; the relevant state
+  // is captured via phase / revealed / autoAdvancing in the dep array
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, revealed, autoAdvancing])
+
   const isSynced = lines.some(l => l.timestamp !== undefined)
 
   if (lines.length === 0) {
