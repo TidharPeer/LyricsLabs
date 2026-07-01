@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Music2, Video, VideoOff, Play, Pause, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { loadYTApi } from '@/lib/youtube'
+import { useMediaSession } from '@/hooks/useMediaSession'
 
 export interface PlayerControls {
   seekTo: (t: number) => void
@@ -12,6 +13,7 @@ export interface PlayerControls {
 interface Props {
   videoId: string
   title: string
+  artist?: string
   autoPlay?: boolean
   onTimeUpdate?: (time: number) => void
   onPlayerReady?: (controls: PlayerControls) => void
@@ -23,7 +25,7 @@ function formatTime(s: number): string {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate, onPlayerReady }: Props) {
+export function CompactPlayer({ videoId, title, artist = '', autoPlay = false, onTimeUpdate, onPlayerReady }: Props) {
   const playerDivRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YT.Player | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -37,6 +39,18 @@ export function CompactPlayer({ videoId, title, autoPlay = false, onTimeUpdate, 
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+
+  useMediaSession({
+    title,
+    artist,
+    youtubeId: videoId,
+    playing,
+    currentTime,
+    duration,
+    onPlay: () => playerRef.current?.playVideo(),
+    onPause: () => playerRef.current?.pauseVideo(),
+    onSeek: (t) => playerRef.current?.seekTo(t, true),
+  })
 
   useEffect(() => {
     if (!videoId || !playerDivRef.current) return

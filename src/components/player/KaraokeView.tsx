@@ -7,6 +7,8 @@ import { lyricsDir } from '@/lib/rtl'
 import { addStars, incrementPlayCount } from '@/lib/db'
 import { findActiveLine } from '@/lib/activeLine'
 import { ActiveLyricLine, InactiveLyricLine } from '@/styles/lyricLine'
+import { getDailyChallenge, setDailyChallengeComplete } from '@/lib/storage'
+import { useMediaSession } from '@/hooks/useMediaSession'
 import type { Song } from '@/types'
 
 interface Props {
@@ -20,6 +22,8 @@ interface Props {
 export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: Props) {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [playing, setPlaying] = useState(false)
   const [playerReady, setPlayerReady] = useState(false)
   const [isInstrumental, setIsInstrumental] = useState(false)
   const playerRef = useRef<YT.Player | null>(null)
@@ -28,6 +32,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const karaokeStarGiven = useRef(false)
   const playCountGiven = useRef(false)
+  const dailyChallengeGiven = useRef(false)
   // Always call latest onEnded without re-creating the YT player
   const onEndedRef = useRef(onEnded)
   useEffect(() => { onEndedRef.current = onEnded }, [onEnded])
@@ -36,13 +41,25 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
   const activeLine = findActiveLine(song.lyrics, currentTime)
   const dir = lyricsDir(song.language)
 
+  useMediaSession({
+    title: song.title,
+    artist: song.artist,
+    youtubeId: song.youtubeId,
+    playing,
+    currentTime,
+    duration,
+    onPlay: () => playerRef.current?.playVideo(),
+    onPause: () => playerRef.current?.pauseVideo(),
+    onSeek: (t) => playerRef.current?.seekTo(t, true),
+  })
+
   function toggleVocals() {
     const player = playerRef.current as any
     if (!player || !song.instrumentalYoutubeId) return
     const time = player.getCurrentTime?.() ?? 0
-    const playing = player.getPlayerState?.() === 1
+    const isPlaying = player.getPlayerState?.() === 1
     const newId = isInstrumental ? song.youtubeId : song.instrumentalYoutubeId
-    if (playing) {
+    if (isPlaying) {
       player.loadVideoById({ videoId: newId, startSeconds: time })
     } else {
       player.cueVideoById({ videoId: newId, startSeconds: time })
@@ -54,6 +71,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
     setIsInstrumental(false)
     playCountGiven.current = false
     karaokeStarGiven.current = false
+    dailyChallengeGiven.current = false
   }, [song.id])
 
   useEffect(() => {
@@ -71,14 +89,16 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
         videoId: song.youtubeId,
         width: '100%',
         height: '100%',
-        playerVars: { rel: 0, modestbranding: 1 },
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
           onReady: () => {
             setPlayerReady(true)
             if (autoplay) playerRef.current?.playVideo()
             intervalRef.current = setInterval(() => {
               const t = playerRef.current?.getCurrentTime?.() ?? 0
+              const dur = (playerRef.current as any)?.getDuration?.() ?? 0
               setCurrentTime(t)
+              if (dur > 0) setDuration(dur)
               if (!playCountGiven.current && t >= 5) {
                 playCountGiven.current = true
                 incrementPlayCount(song.id).catch(() => {})
@@ -87,9 +107,18 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
                 karaokeStarGiven.current = true
                 addStars(userId, 1).then(() => onStarEarned?.()).catch(() => {})
               }
+              if (!dailyChallengeGiven.current && dur > 0 && t >= 0.5 * dur && userId) {
+                const challenge = getDailyChallenge(userId)
+                if (challenge && !challenge.completed && challenge.songId === song.id) {
+                  dailyChallengeGiven.current = true
+                  setDailyChallengeComplete(userId, undefined, 3)
+                  addStars(userId, 3).then(() => onStarEarned?.()).catch(() => {})
+                }
+              }
             }, 250)
           },
           onStateChange: (event: YT.OnStateChangeEvent) => {
+            setPlaying(event.data === 1)
             if (event.data === 0 /* YT.PlayerState.ENDED */) {
               onEndedRef.current?.()
             }
@@ -103,6 +132,7 @@ export function KaraokeView({ song, userId, onStarEarned, onEnded, autoplay }: P
       try { playerRef.current?.destroy() } catch { /* ignore */ }
       playerRef.current = null
       setPlayerReady(false)
+      setPlaying(false)
     }
   }, [song.id, song.youtubeId])
 

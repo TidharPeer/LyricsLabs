@@ -114,7 +114,8 @@ export function GamePage() {
       {song.youtubeId && (
         <CompactPlayer
           videoId={song.youtubeId}
-          title={`${song.title} — ${song.artist}`}
+          title={song.title}
+          artist={song.artist}
           autoPlay
           onTimeUpdate={setCurrentTime}
           onPlayerReady={setPlayerControls}

@@ -121,7 +121,7 @@ export function getDailyChallenge(userId: string): DailyChallengeEntry | null {
   } catch { return null }
 }
 
-export function setDailyChallengeComplete(userId: string, score: number, starsEarned: number): void {
+export function setDailyChallengeComplete(userId: string, score: number | undefined, starsEarned: number): void {
   try {
     const today = todayStr()
     const key = dailyChallengeKey(userId, today)

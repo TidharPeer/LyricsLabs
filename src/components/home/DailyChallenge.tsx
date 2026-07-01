@@ -31,7 +31,7 @@ export function DailyChallenge({ userId }: Props) {
       <div className="flex items-center gap-2">
         <CalendarCheck className="h-4 w-4 text-primary shrink-0" />
         <span className="text-sm font-semibold text-primary">Daily Challenge</span>
-        <Badge variant="outline" className="ml-auto text-xs">+3 bonus ★</Badge>
+        <Badge variant="outline" className="ml-auto text-xs">Listen 50% to complete</Badge>
       </div>
 
       <div>
@@ -42,11 +42,11 @@ export function DailyChallenge({ userId }: Props) {
       {challenge.completed ? (
         <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Completed! Score: {challenge.score}% · +{challenge.starsEarned} ★</span>
+          <span>Completed! +{challenge.starsEarned} ★</span>
         </div>
       ) : (
         <Button asChild size="sm">
-          <Link to={`/songs/${song.id}`}>Play Challenge</Link>
+          <Link to={`/songs/${song.id}`}>Listen & Complete</Link>
         </Button>
       )}
     </div>
