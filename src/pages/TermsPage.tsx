@@ -13,7 +13,7 @@ export function TermsPage() {
           Back
         </Link>
         <h1 className="text-3xl font-bold">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground mt-1">Last updated: June 2026</p>
+        <p className="text-sm text-muted-foreground mt-1">Last updated: July 2026</p>
       </div>
 
       <section className="space-y-3">
@@ -76,6 +76,17 @@ export function TermsPage() {
         <p className="text-muted-foreground leading-relaxed">
           We may update these terms from time to time. Continued use of the app after changes are posted
           constitutes acceptance of the new terms.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">YouTube API Services</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          LyricsLabs uses YouTube API Services to play videos within the app. By using LyricsLabs,
+          you agree to be bound by the{' '}
+          <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+            YouTube Terms of Service
+          </a>.
         </p>
       </section>
 

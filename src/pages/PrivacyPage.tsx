@@ -13,7 +13,7 @@ export function PrivacyPage() {
           Back
         </Link>
         <h1 className="text-3xl font-bold">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground mt-1">Last updated: June 2026</p>
+        <p className="text-sm text-muted-foreground mt-1">Last updated: July 2026</p>
       </div>
 
       <section className="space-y-3">
@@ -70,6 +70,17 @@ export function PrivacyPage() {
           <li className="flex gap-2">
             <span className="shrink-0 mt-1">•</span>
             <span><strong className="text-foreground">Supabase</strong> — our database and authentication infrastructure. Data is stored in Supabase's cloud. See <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Supabase's Privacy Policy</a>.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="shrink-0 mt-1">•</span>
+            <span>
+              <strong className="text-foreground">YouTube API Services</strong> — used to play song videos within the app via the YouTube embedded player.
+              LyricsLabs does not retrieve or store any YouTube statistics (view counts, likes, etc.).
+              Usage is subject to the{' '}
+              <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">YouTube Terms of Service</a>{' '}
+              and{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Google's Privacy Policy</a>.
+            </span>
           </li>
         </ul>
       </section>
